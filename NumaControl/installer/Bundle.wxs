@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+  <Bundle Name="NUMA Control" Version="$(var.ProductVersion)" Manufacturer="NUMA Control" UpgradeCode="$(var.BundleUpgradeCode)" IconSourceFile="$(var.ProjectRoot)\src\app.ico" DisableModify="yes">
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.HyperlinkLicense">
+      <bal:WixStandardBootstrapperApplication LicenseUrl="" SuppressOptionsUI="yes" ShowVersion="yes" />
+    </BootstrapperApplicationRef>
+    <Chain>
+      <PackageGroupRef Id="NetFx48Web" />
+      <MsiPackage Id="NumaControlMsi" SourceFile="$(var.MsiPath)" Compressed="yes" DisplayInternalUI="yes" Visible="yes" Vital="yes">
+        <?ifdef IsolationDirectory ?>
+        <MsiProperty Name="INSTALLFOLDER" Value="$(var.IsolationDirectory)\app" />
+        <MsiProperty Name="APPLICATIONMENUFOLDER" Value="$(var.IsolationDirectory)\menu" />
+        <MsiProperty Name="APPLICATIONDESKTOPFOLDER" Value="$(var.IsolationDirectory)\desktop" />
+        <?endif ?>
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="$(var.ProductCode)" Name="NUMA Control" Language="1049" Codepage="1251" Version="$(var.ProductVersion)" Manufacturer="NUMA Control" UpgradeCode="5B491C32-5ADB-44C9-8E40-EA269B744AA9">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" InstallPrivileges="limited" Platform="x64" Description="NUMA Control — игровые профили CPU" SummaryCodepage="1251"/>
+    <MajorUpgrade DowngradeErrorMessage="Установлена более новая версия NUMA Control." Schedule="afterInstallInitialize"/>
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high"/>
+    <Property Id="ARPPRODUCTICON" Value="AppIcon"/>
+    <Property Id="INSTALLFOLDER" Secure="yes"/><Property Id="APPLICATIONMENUFOLDER" Secure="yes"/><Property Id="APPLICATIONDESKTOPFOLDER" Secure="yes"/>
+    <Property Id="PREVIOUSINSTALLFOLDER"><RegistrySearch Id="ExistingInstallFolder" Root="HKCU" Key="Software\NUMA Control\Installer" Name="InstallFolder" Type="raw" Win64="yes"/></Property>
+    <Property Id="PREVIOUSMENUFOLDER"><RegistrySearch Id="ExistingMenuFolder" Root="HKCU" Key="Software\NUMA Control\Installer" Name="MenuFolder" Type="raw" Win64="yes"/></Property>
+    <Property Id="PREVIOUSDESKTOPFOLDER"><RegistrySearch Id="ExistingDesktopFolder" Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopFolder" Type="raw" Win64="yes"/></Property>
+    <SetProperty Id="INSTALLFOLDER" Value="[PREVIOUSINSTALLFOLDER]" Before="CostFinalize">NOT INSTALLFOLDER AND PREVIOUSINSTALLFOLDER AND (Installed OR WIX_UPGRADE_DETECTED)</SetProperty>
+    <SetProperty Id="APPLICATIONMENUFOLDER" Value="[PREVIOUSMENUFOLDER]" Before="CostFinalize">NOT APPLICATIONMENUFOLDER AND PREVIOUSMENUFOLDER AND (Installed OR WIX_UPGRADE_DETECTED)</SetProperty>
+    <SetProperty Id="APPLICATIONDESKTOPFOLDER" Value="[PREVIOUSDESKTOPFOLDER]" Before="SetDesktopFolder">NOT APPLICATIONDESKTOPFOLDER AND PREVIOUSDESKTOPFOLDER AND (Installed OR WIX_UPGRADE_DETECTED)</SetProperty>
+    <Property Id="DESKTOPCHOICE" Secure="yes"/>
+    <Property Id="SAVEDDESKTOPCHOICE"><RegistrySearch Id="ExistingDesktopChoice" Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopChoice" Type="raw" Win64="yes"/></Property>
+    <SetDirectory Id="DesktopFolder" Value="[APPLICATIONDESKTOPFOLDER]">APPLICATIONDESKTOPFOLDER</SetDirectory>
+    <SetProperty Id="DESKTOPCHOICE" Value="[SAVEDDESKTOPCHOICE]" Before="CostFinalize" Action="RestoreDesktopChoice">NOT DESKTOPCHOICE AND SAVEDDESKTOPCHOICE</SetProperty>
+    <SetProperty Id="DESKTOPCHOICE" Value="0" After="RestoreDesktopChoice" Action="DefaultDesktopChoice">NOT DESKTOPCHOICE</SetProperty>
+    <SetProperty Id="DESKTOPCHECKBOX" Value="1" After="DefaultDesktopChoice" Sequence="ui">DESKTOPCHOICE = "1"</SetProperty>
+    <Property Id="NET48RELEASE"><RegistrySearch Id="FindNet48" Root="HKLM" Key="SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" Name="Release" Type="raw" Win64="yes"/></Property>
+    <Condition Message="Требуются Windows x64 и .NET Framework 4.8 или новее.">Installed OR (VersionNT64 AND NET48RELEASE &gt;= "#528040")</Condition>
+    <Condition Message="NUMA Control устанавливается только для текущего пользователя.">NOT ALLUSERS</Condition>
+    <Icon Id="AppIcon" SourceFile="$(var.ProjectRoot)\src\app.ico"/>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder"><Directory Id="ProgramsFolder" Name="Programs"><Directory Id="INSTALLFOLDER" Name="NUMA Control">
+        <Component Id="MainExecutable" Guid="A6C221A6-BF03-4A8E-95BE-BE0C1F8AEB48" Win64="yes">
+          <File Id="ApplicationExe" Source="$(var.ProjectRoot)\NUMA-Control.exe"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="InstallFolder" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopFolder" Value="[DesktopFolder]" Type="string"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopChoice" Value="[DESKTOPCHOICE]" Type="string"/>
+          <RemoveFolder Id="RemoveEmptyInstallFolder" Directory="INSTALLFOLDER" On="uninstall"/>
+          <RemoveFolder Id="RemoveEmptyProgramsFolder" Directory="ProgramsFolder" On="uninstall"/>
+        </Component>
+        <Component Id="RuntimeConfig" Guid="D1EE48CC-530C-4AE9-A8C0-C331F31E2F95" Win64="yes">
+          <File Id="ApplicationConfig" Source="$(var.ProjectRoot)\NUMA-Control.exe.config"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="Config" Value="1" Type="integer" KeyPath="yes"/>
+        </Component>
+        <Component Id="Documentation" Guid="671E21EE-D068-40B0-8B38-9ACFAFA3AAC9" Win64="yes">
+          <File Id="UserGuide" Source="$(var.ProjectRoot)\USER-GUIDE.md"/>
+          <File Id="UserGuideRu" Source="$(var.ProjectRoot)\USER-GUIDE.ru.md"/>
+          <File Id="Readme" Source="$(var.ProjectRoot)\README.md"/>
+          <File Id="ReadmeRu" Source="$(var.ProjectRoot)\README.ru.md"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="Docs" Value="1" Type="integer" KeyPath="yes"/>
+        </Component>
+      </Directory></Directory></Directory>
+      <Directory Id="ProgramMenuFolder"><Directory Id="APPLICATIONMENUFOLDER" Name="NUMA Control">
+        <Component Id="MenuShortcuts" Guid="4C839BFA-EEBE-4E54-B30A-55D7F15248E1" Win64="yes">
+          <Shortcut Id="StartMenuLaunch" Name="NUMA Control" Target="[INSTALLFOLDER]NUMA-Control.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" Description="Игровые профили CPU"/>
+          <Shortcut Id="StartMenuUninstall" Name="Удалить NUMA Control" Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]" Description="Удалить программу. Пользовательские профили сохранятся"/>
+          <RemoveFolder Id="RemoveMenuFolder" On="uninstall"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="Shortcuts" Value="1" Type="integer" KeyPath="yes"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="MenuFolder" Value="[APPLICATIONMENUFOLDER]" Type="string"/>
+        </Component>
+      </Directory></Directory>
+      <Directory Id="DesktopFolder" Name="Desktop">
+        <Component Id="DesktopShortcut" Guid="D22E229D-4745-40D6-9B12-4652805DD624" Win64="yes">
+          <Condition>DESKTOPCHOICE = "1"</Condition>
+          <Shortcut Id="DesktopLaunch" Name="NUMA Control" Target="[INSTALLFOLDER]NUMA-Control.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" Description="Открыть NUMA Control"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopShortcut" Value="1" Type="integer" KeyPath="yes"/>
+        </Component>
+      </Directory>
+    </Directory>
+    <Feature Id="Complete" Title="NUMA Control" Level="1">
+      <ComponentRef Id="MainExecutable"/><ComponentRef Id="RuntimeConfig"/><ComponentRef Id="Documentation"/><ComponentRef Id="MenuShortcuts"/><ComponentRef Id="DesktopShortcut"/>
+    </Feature>
+    <CustomAction Id="CleanOwnedShortcuts" FileKey="ApplicationExe" ExeCommand="--uninstall-cleanup" Execute="immediate" Return="ignore"/>
+    <InstallExecuteSequence>
+      <Custom Action="CleanOwnedShortcuts" Before="RemoveFiles">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <?ifdef InjectRollback ?>
+      <InstallExecute After="InstallFiles"/>
+      <Custom Action="FailAfterFiles" After="InstallExecute">NOT Installed</Custom>
+      <?endif ?>
+    </InstallExecuteSequence>
+    <?ifdef InjectRollback ?>
+    <CustomAction Id="FailAfterFiles" Error="Injected rollback test"/>
+    <?endif ?>
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+    <UIRef Id="WixUI_InstallDir"/>
+    <UI>
+      <Dialog Id="DesktopOptionsDlg" Width="370" Height="270" Title="Установка NUMA Control">
+        <Control Id="Banner" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner"/>
+        <Control Id="Title" Type="Text" X="15" Y="7" Width="300" Height="18" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Дополнительные параметры"/>
+        <Control Id="Hint" Type="Text" X="20" Y="65" Width="330" Height="32" Text="Выберите, нужен ли ярлык приложения на рабочем столе. Игровые ярлыки создаются отдельно в программе."/>
+        <Control Id="DesktopChoice" Type="CheckBox" X="20" Y="108" Width="330" Height="20" Property="DESKTOPCHECKBOX" CheckBoxValue="1" Text="Создать ярлык NUMA Control на рабочем столе"/>
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Назад"><Publish Event="NewDialog" Value="InstallDirDlg">1</Publish></Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Далее"><Publish Property="DESKTOPCHOICE" Value="0" Order="1">NOT DESKTOPCHECKBOX</Publish><Publish Property="DESKTOPCHOICE" Value="1" Order="2">DESKTOPCHECKBOX</Publish><Publish Event="NewDialog" Value="VerifyReadyDlg" Order="3">1</Publish></Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Отмена"><Publish Event="SpawnDialog" Value="CancelDlg">1</Publish></Control>
+      </Dialog>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2">NOT Installed</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="DesktopOptionsDlg" Order="5">WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID = "1"</Publish>
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="DesktopOptionsDlg" Order="5">NOT Installed</Publish>
+    </UI>
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.ProjectRoot)\installer\banner.bmp"/>
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.ProjectRoot)\installer\dialog.bmp"/>
+  </Product>
+</Wix>

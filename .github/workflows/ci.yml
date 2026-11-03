@@ -1,0 +1,40 @@
+name: Windows build and repository safety
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Source safety and Windows build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Inspect committed files
+        shell: powershell
+        run: ./scripts/Test-RepositorySafety.ps1
+      - name: Scan Git history with Gitleaks
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'gitleaks.zip'
+          $scannerDirectory = Join-Path $env:RUNNER_TEMP 'gitleaks'
+          Invoke-WebRequest -Uri 'https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_windows_x64.zip' -OutFile $archive
+          $expected = 'd29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected) { throw 'Gitleaks archive checksum mismatch.' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $scannerDirectory
+          & (Join-Path $scannerDirectory 'gitleaks.exe') git --no-banner --redact --log-opts='--all' .
+          if ($LASTEXITCODE -ne 0) { throw 'History secret scan failed.' }
+      - name: Compile current NUMA Control
+        shell: powershell
+        run: ./NumaControl/Build.ps1
