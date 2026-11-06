@@ -32,7 +32,7 @@ Open **Settings → Interface language → Русский / English**. On the in
 
 Examples: `cs2.exe`, `dota2.exe`, `Game.exe`. Steam launch targets include `steam://rungameid/730` and `steam://rungameid/570`; `astrumplay://play/0.1177` is another supported target. The game's matching EXE and its launch target are separate fields. Arbitrary shell commands are rejected.
 
-For Epic Games, Battle.net and Ubisoft Connect, select the game EXE and import its launcher shortcut with **Use game shortcut**. **Set up Fortnite** fills both fields for an installed Epic copy. Check the profile status for the result of CPU affinity and priority operations.
+For Epic Games, Battle.net and Ubisoft Connect, select the game EXE and import its launcher shortcut with **Use game shortcut**. For Fortnite, add `FortniteClient-Win64-Shipping.exe` and leave the launch target and arguments blank to use the Epic link automatically. Check the profile status for the result of CPU affinity and priority operations.
 
 ## CPU presets
 

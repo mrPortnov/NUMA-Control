@@ -188,11 +188,19 @@ namespace NumaControl
             }
             finally { foreach (Process p in processes) p.Dispose(); }
         }
-        internal static void Launch(GameProfile game, ulong systemMask = 0, Func<ProcessStartInfo, Process> start = null)
+        internal static void Launch(GameProfile game, ulong systemMask = 0, Func<ProcessStartInfo, Process> start = null, string epicManifests = null)
         {
             if (start == null) start = Process.Start;
             if (Running(game)) return;
             string target = string.IsNullOrWhiteSpace(game.LaunchTarget) ? game.ExePath : game.LaunchTarget;
+            if (LauncherTargets.IsFortniteProcess(game.ProcessName) && !game.LaunchViaShell && string.IsNullOrWhiteSpace(game.Arguments) &&
+                string.Equals(target, game.ExePath, StringComparison.OrdinalIgnoreCase))
+            {
+                GameProfile installed = LauncherTargets.FindFortnite(epicManifests ?? LauncherTargets.EpicManifests, game.ExePath);
+                if (installed == null)
+                    throw new InvalidOperationException(L10n.T("Не удалось найти ссылку Epic для Fortnite. Импортируйте ярлык Fortnite или запустите игру через Epic Games Launcher."));
+                target = installed.LaunchTarget;
+            }
             if (string.IsNullOrWhiteSpace(target)) throw new InvalidOperationException(L10n.T("Укажите EXE или ссылку лаунчера в параметрах игры. Наблюдатель уже включён: игру можно запустить обычным способом."));
             Configuration.ValidateLaunch(target);
             if (LauncherTargets.IsClientUri(target) || game.LaunchViaShell)

@@ -16,6 +16,9 @@ namespace NumaControl
 
     internal static class LauncherTargets
     {
+        private const string FortniteProcess = "FortniteClient-Win64-Shipping";
+        internal static readonly string EpicManifests = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), @"Epic\EpicGamesLauncher\Data\Manifests");
         private const string EpicPart = @"[A-Za-z0-9][A-Za-z0-9_.-]*";
         private static readonly Regex ClientUri = new Regex(
             @"\A(?:com\.epicgames\.launcher://apps/(?:" + EpicPart + "%3A" + EpicPart + "%3A)?" + EpicPart +
@@ -82,11 +85,19 @@ namespace NumaControl
             finally { Marshal.FinalReleaseComObject(link); }
         }
 
-        internal static GameProfile FindFortnite(string manifests)
+        internal static bool IsFortniteProcess(string process)
         {
+            return string.Equals(process, FortniteProcess, StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static GameProfile FindFortnite(string manifests, string executable)
+        {
+            string[] files;
+            try { files = Directory.GetFiles(manifests, "*.item"); }
+            catch (IOException) { return null; }
+            catch (UnauthorizedAccessException) { return null; }
             GameProfile result = null;
-            if (!Directory.Exists(manifests)) return null;
-            foreach (string file in Directory.EnumerateFiles(manifests, "*.item"))
+            foreach (string file in files)
             {
                 GameProfile candidate;
                 try { candidate = ReadFortniteManifest(file); }
@@ -97,6 +108,7 @@ namespace NumaControl
                 catch (UnauthorizedAccessException) { continue; }
                 catch (NotSupportedException) { continue; }
                 if (candidate == null) continue;
+                if (!string.IsNullOrWhiteSpace(executable) && !string.Equals(candidate.ExePath, executable, StringComparison.OrdinalIgnoreCase)) continue;
                 if (result != null && (!string.Equals(result.ExePath, candidate.ExePath, StringComparison.OrdinalIgnoreCase) ||
                     !string.Equals(result.LaunchTarget, candidate.LaunchTarget, StringComparison.OrdinalIgnoreCase)))
                     return null;
@@ -115,14 +127,13 @@ namespace NumaControl
             string install = ReadString(manifest, "InstallLocation");
             if (string.IsNullOrEmpty(install)) return null;
             ValidateDirectory(install);
-            const string process = "FortniteClient-Win64-Shipping";
-            string executable = Path.Combine(install, @"FortniteGame\Binaries\Win64", process + ".exe");
+            string executable = Path.Combine(install, @"FortniteGame\Binaries\Win64", FortniteProcess + ".exe");
             if (!File.Exists(executable)) return null;
             string catalog = ReadString(manifest, "CatalogNamespace"), item = ReadString(manifest, "CatalogItemId");
             if (string.IsNullOrEmpty(catalog) || string.IsNullOrEmpty(item)) return null;
             string uri = "com.epicgames.launcher://apps/" + catalog + "%3A" + item + "%3AFortnite?action=launch&silent=true";
             if (!IsClientUri(uri)) return null;
-            return new GameProfile { Name = "Fortnite", ProcessName = process, ExePath = executable, LaunchTarget = uri };
+            return new GameProfile { Name = "Fortnite", ProcessName = FortniteProcess, ExePath = executable, LaunchTarget = uri };
         }
 
         private static string ReadString(Dictionary<string, object> manifest, string key)

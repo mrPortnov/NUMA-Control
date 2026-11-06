@@ -7,7 +7,7 @@ Downloads and publication dates are available in [GitHub Releases](https://githu
 ## 1.7.0 — launcher integration
 
 - Launch games through Epic Games, Battle.net and Ubisoft Connect using supported links or game shortcuts.
-- Fill the Fortnite profile from a local Epic installation.
+- Find the Epic launch link automatically for Fortnite profiles with the default launch target.
 - See which operation Windows denied and whether the requested CPU mask was confirmed.
 
 ## [1.6.1 — BIOS list readability](https://github.com/mrPortnov/NUMA-Control/releases/tag/v1.6.1)

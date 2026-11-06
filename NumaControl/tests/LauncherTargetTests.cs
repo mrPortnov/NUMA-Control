@@ -56,9 +56,30 @@ namespace NumaControl
                 AppName = "Fortnite", InstallLocation = install, CatalogNamespace = "fn", CatalogItemId = "example",
                 LaunchExecutable = "FortniteGame/Binaries/Win64/FortniteBootstrapper.exe"
             }));
-            GameProfile fortnite = LauncherTargets.FindFortnite(folder);
+            GameProfile fortnite = LauncherTargets.FindFortnite(folder, null);
             Check(fortnite != null && fortnite.ExePath == binary && fortnite.ProcessName == "FortniteClient-Win64-Shipping" && fortnite.LaunchTarget == epic,
                 "Fortnite uses the game client for matching and the Epic URI for launching");
+            var saved = new GameProfile { ProcessName = fortnite.ProcessName, ExePath = binary };
+            Func<ProcessStartInfo, Process> capture = info => { launch = info; return null; };
+            foreach (string target in new[] { "", binary })
+            {
+                saved.LaunchTarget = target;
+                launch = null;
+                GameLauncher.Launch(saved, topology.AllMask, capture, folder);
+                Check(launch != null && launch.UseShellExecute && launch.FileName == epic && saved.LaunchTarget == target,
+                    "Fortnite launch uses Epic for empty and legacy direct targets without rewriting the profile");
+            }
+            saved.LaunchTarget = epic.Replace("example", "explicit");
+            GameLauncher.Launch(saved, topology.AllMask, capture, folder);
+            Check(launch.FileName == saved.LaunchTarget, "Fortnite keeps an explicitly selected launch link");
+
+            saved.LaunchTarget = "";
+            saved.ExePath = Path.Combine(folder, Path.GetFileName(binary));
+            File.Copy(fixture, saved.ExePath);
+            launch = null;
+            Reject(() => GameLauncher.Launch(saved, topology.AllMask, capture, folder),
+                "Fortnite does not choose Epic metadata for a different installation");
+            Check(launch == null, "Fortnite does not silently fall back to starting the client EXE");
         }
     }
 }

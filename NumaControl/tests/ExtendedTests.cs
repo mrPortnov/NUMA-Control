@@ -215,6 +215,19 @@ namespace NumaControl
                     Press(editor, "CancelProfile");
                 });
                 Press(w, "AddGame");
+                interaction.Editors.Enqueue(editor =>
+                {
+                    const string client = "FortniteClient-Win64-Shipping.exe";
+                    string gamePath = Path.Combine(Path.GetDirectoryName(fixture), client);
+                    interaction.OpenPaths.Enqueue(gamePath);
+                    Press(editor, "BrowseGameExe");
+                    Check(Control<TextBox>(editor, "GamePathInput").Text == gamePath &&
+                        Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(client) &&
+                        Control<TextBox>(editor, "LaunchTargetInput").Text == "",
+                        "the normal game editor leaves the Fortnite launch target automatic");
+                    Press(editor, "CancelProfile");
+                });
+                Press(w, "AddGame");
                 interaction.Editors.Enqueue(editor => { interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe"); Check(Control<TextBox>(editor, "GamePathInput").Text == fixture, "browse game fills exact path"); Check(Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(fixture), "browse game derives process name"); Control<TextBox>(editor, "GameNameInput").Text = "Тест игрового профиля"; interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseLaunchExe"); Press(editor, "SaveProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 4 && Control<TextBlock>(w, "SelectedName").Text == "Тест игрового профиля", "add via EXE creates and selects persisted profile");
                 string fixtureId = controller.Config.Games.Last().Id;

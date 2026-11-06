@@ -40,7 +40,6 @@ namespace NumaControl
             WrapPanel methods = new WrapPanel();
             methods.Children.Add(Ui.Button(L10n.T("Из запущенных процессов"), PickProcess, true, "ChooseProcess"));
             methods.Children.Add(Ui.Button(L10n.T("Выбрать файл .exe"), BrowseGame, false, "BrowseGameExe"));
-            methods.Children.Add(Ui.Button(L10n.T("Настроить Fortnite"), SetFortnite, false, "SetFortnite"));
             body.Children.Add(methods);
             name = Field(body, L10n.T("Название в библиотеке"), game == null ? "" : game.Name);
             process = Field(body, L10n.T("Имя процесса без .exe"), game == null ? "" : game.ProcessName);
@@ -54,6 +53,7 @@ namespace NumaControl
             launchOptions.Children.Add(Ui.Button(L10n.T("Взять цель из ярлыка"), BrowseLauncherShortcut, false, "BrowseLauncherShortcut"));
             body.Children.Add(launchOptions);
             body.Children.Add(Ui.Text(L10n.T("Для Epic Games, Battle.net и Ubisoft Connect выберите ярлык игры. Выше укажите процесс самой игры."), 11, "#949DB1"));
+            body.Children.Add(Ui.Text(L10n.T("Для Fortnite можно оставить цель запуска пустой. NUMA Control найдёт ссылку Epic автоматически."), 11, "#949DB1"));
             arguments = Field(body, L10n.T("Аргументы запуска · только для EXE"), game == null ? "" : game.Arguments);
             name.Name = "GameNameInput"; process.Name = "ProcessNameInput"; path.Name = "GamePathInput"; launch.Name = "LaunchTargetInput"; arguments.Name = "ArgumentsInput";
             enabled = new CheckBox { Content = L10n.T("Автоматически следить за этой игрой"), IsChecked = game == null || game.Enabled, Margin = new Thickness(0, 17, 0, 9), Style = (Style)Application.Current.FindResource("Switch") }; body.Children.Add(enabled);
@@ -106,30 +106,14 @@ namespace NumaControl
             }
             catch (Exception error) { interaction.Ask(this, error.Message, L10n.T("Проверьте параметры"), MessageBoxButton.OK, MessageBoxImage.Warning); }
         }
-        private void SetFortnite()
-        {
-            try
-            {
-                string manifests = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), @"Epic\EpicGamesLauncher\Data\Manifests");
-                GameProfile fortnite = LauncherTargets.FindFortnite(manifests);
-                if (fortnite == null) throw new InvalidOperationException(L10n.T("Не удалось однозначно найти Fortnite. Выберите игровой EXE и укажите ярлык Fortnite из Epic Games Launcher."));
-                name.Text = fortnite.Name;
-                process.Text = fortnite.ProcessName;
-                path.Text = fortnite.ExePath;
-                launch.Text = fortnite.LaunchTarget;
-                arguments.Text = "";
-                launchDirectory = "";
-                launchViaShell = true;
-            }
-            catch (Exception error) { interaction.Ask(this, error.Message, L10n.T("Проверьте параметры"), MessageBoxButton.OK, MessageBoxImage.Warning); }
-        }
         private void SetExecutable(string executable)
         {
-            bool followLaunch = string.IsNullOrWhiteSpace(launch.Text) || string.Equals(launch.Text, path.Text, StringComparison.OrdinalIgnoreCase);
+            bool followLaunch = !launchViaShell && (string.IsNullOrWhiteSpace(launch.Text) ||
+                string.Equals(launch.Text, path.Text, StringComparison.OrdinalIgnoreCase));
             bool followName = string.IsNullOrWhiteSpace(name.Text) || name.Text == process.Text;
             path.Text = executable; process.Text = Path.GetFileNameWithoutExtension(executable);
             if (followName) name.Text = process.Text;
-            if (followLaunch) launch.Text = executable;
+            if (followLaunch) launch.Text = LauncherTargets.IsFortniteProcess(process.Text) ? "" : executable;
         }
         private void PickProcess()
         {

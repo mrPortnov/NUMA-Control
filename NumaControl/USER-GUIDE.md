@@ -88,7 +88,7 @@ A directly launched game can receive its mask at startup. Imported shortcuts and
 2. Choose **Use game shortcut**, open the `.lnk` or `.url`, then review the launch target and arguments before saving.
 3. Choose **Launch game**. If Battle.net or another client opens the game page, press **Play** in that client. The observer waits for the game process.
 
-For Fortnite, **Set up Fortnite** fills the profile from a local Epic installation. If it cannot find the installation, select `FortniteClient-Win64-Shipping.exe` and import the Epic-generated Fortnite shortcut. Windows may let NUMA Control read the game’s mask while denying permission to change it. If the status reports access denied while setting CPU affinity, the requested mask could not be confirmed.
+For Fortnite, add `FortniteClient-Win64-Shipping.exe` from the list of running processes or select the file. Leave the launch target and arguments blank. **Launch game** looks up the link in the local Epic installation. Existing profiles that point to the same game EXE for launching also use the Epic link if they have no launch arguments. If the link cannot be found, import the Fortnite shortcut created by Epic or start the game from the launcher. Windows may let NUMA Control read the game’s mask while denying permission to change it. If the status reports access denied while setting CPU affinity, the requested mask could not be confirmed.
 
 ## CPU map and saved masks
 

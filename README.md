@@ -96,7 +96,9 @@ Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also
 
 Example process names are `cs2.exe` for Counter-Strike 2, `dota2.exe` for Dota 2 and `Game.exe` for Warface. Steam targets such as `steam://rungameid/730` and `steam://rungameid/570` are supported. The game process path and the launcher target are separate fields. Arbitrary shell commands are not executed as launch targets.
 
-For **Epic Games, Battle.net and Ubisoft Connect**, choose the game EXE, then use **Use game shortcut** to import a game shortcut created by its launcher. If the client opens the game page, press **Play** there. For **Fortnite**, choose **Set up Fortnite** to fill the installed game EXE and Epic launch link. Windows may grant read access while denying changes to CPU affinity and priority. The profile status identifies the operation that failed.
+For **Epic Games, Battle.net and Ubisoft Connect**, choose the game EXE, then use **Use game shortcut** to import a game shortcut created by its launcher. If the client opens the game page, press **Play** there.
+
+For **Fortnite**, add `FortniteClient-Win64-Shipping.exe` from the list of running processes or select the file. Leave the launch target and arguments blank. **Launch game** uses the Epic link from the local installation. If the link cannot be found, import the Fortnite shortcut or start the game in Epic Games Launcher. Starting the game through Epic does not grant permission to change its CPU affinity or priority. Check the profile status for any operation Windows denied.
 
 The application does not bundle the games, inject into them or modify their files. It uses Windows process queries and affinity/priority operations; it does not read or modify game memory.
 
