@@ -231,8 +231,20 @@ namespace NumaControl
                 interaction.Editors.Enqueue(editor => { interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe"); Check(Control<TextBox>(editor, "GamePathInput").Text == fixture, "browse game fills exact path"); Check(Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(fixture), "browse game derives process name"); Control<TextBox>(editor, "GameNameInput").Text = "Тест игрового профиля"; interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseLaunchExe"); Press(editor, "SaveProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 4 && Control<TextBlock>(w, "SelectedName").Text == "Тест игрового профиля", "add via EXE creates and selects persisted profile");
                 string fixtureId = controller.Config.Games.Last().Id;
+                ulong fixtureMask = controller.Topology.Cores[0].Mask;
+                foreach (ToggleButton cpu in Descendants(Control<WrapPanel>(w, "CpuMap")).OfType<ToggleButton>())
+                {
+                    bool selected = (fixtureMask & (1UL << int.Parse((string)cpu.Content))) != 0;
+                    if (cpu.IsChecked != selected) typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(cpu, null);
+                }
+                if (Control<Button>(w, "SaveMask").IsEnabled) Press(w, "SaveMask");
+                bool expectedFallback;
+                ulong applicationMask = SelfAffinity.Choose(controller.Topology, fixtureMask, out expectedFallback);
                 Press(w, "LaunchGame"); Check(Until(() => GameLauncher.Running(controller.Config.Games.Last()), 3000) && !controller.Config.Paused, "UI launch starts fixture and resumes observer");
-                Check(Until(() => controller.Engine.AppAffinity.ActiveGames == 1 && !controller.Engine.AppAffinity.Fallback, 4000), "UI launch exposes dynamic application cores outside game mask"); w.Width = 1440; w.Height = 960; Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, "application-cores-free");
+                Check(Until(() => controller.Engine.AppAffinity.ActiveGames == 1 && controller.Engine.AppAffinity.GamesMask == fixtureMask &&
+                    controller.Engine.AppAffinity.Mask == applicationMask && controller.Engine.AppAffinity.Fallback == expectedFallback, 4000),
+                    "UI launch exposes the correct application cores for the selected game mask");
+                w.Width = 1440; w.Height = 960; Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, "application-cores-free");
                 Press(w, "PresetAll"); if (Control<Button>(w, "SaveMask").IsEnabled) Press(w, "SaveMask");
                 Check(Until(() => controller.Engine.AppAffinity.Fallback, 4000), "UI all-CPU profile exposes last-core fallback"); Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, "application-cores-last-fallback");
                 Press(w, "PresetEdges"); if (Control<Button>(w, "SaveMask").IsEnabled) Press(w, "SaveMask");

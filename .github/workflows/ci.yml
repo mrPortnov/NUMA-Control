@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    name: Repository safety and Windows tests
+    name: ${{ (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') && 'Release package verification' || 'Repository safety and Windows tests' }}
     runs-on: windows-latest
     timeout-minutes: 40
     env:
