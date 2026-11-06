@@ -22,7 +22,7 @@ namespace NumaControl
                 if (cpu.Cores.Count > 1) Check((chosen & core.Mask) == 0 && !fallback, "self affinity: SMT sibling excluded with occupied core " + core.Index);
             }
             string name = Path.GetFileNameWithoutExtension(fixturePath); ulong original = OwnMask();
-            Configuration config = new Configuration(); GameProfile profile = new GameProfile { Name = "Own affinity fixture", ProcessName = name, ExePath = fixturePath, LaunchTarget = fixturePath, Enabled = true, Mask = cpu.LegacyMask().ToString("X") }; config.Games.Add(profile);
+            Configuration config = new Configuration(); GameProfile profile = new GameProfile { Name = "Own affinity fixture", ProcessName = name, ExePath = fixturePath, LaunchTarget = fixturePath, Enabled = true, Mask = cpu.Cores[0].Mask.ToString("X") }; config.Games.Add(profile);
             using (WatchEngine engine = new WatchEngine(config, cpu, new AppLog(Path.Combine(root, "self-affinity-log")), true))
             {
                 Process game = null;
@@ -38,7 +38,8 @@ namespace NumaControl
                     Check(Until(() => OwnMask() == cpu.Cores.Last().Mask && engine.AppAffinity.Fallback, 4000), "self affinity: full game profile triggers last-core fallback at runtime");
                     using (var handle = Native.Open(game.Id, false)) Check(Native.ReadMask(handle) == cpu.AllMask, "last-core fallback never changes full game profile");
                     changed.Paused = true; engine.Update(changed); using (var handle = Native.Open(game.Id, true)) Native.Apply(handle, profile.CpuMask); engine.Refresh();
-                    Check(Until(() => OwnMask() == expected && !engine.AppAffinity.Fallback, 4000), "self affinity: paused game watcher still follows actual running game mask");
+                    Check(Until(() => OwnMask() == expected && engine.AppAffinity.GamesMask == profile.CpuMask &&
+                        engine.AppAffinity.Fallback == fallback, 4000), "self affinity: paused game watcher still follows actual running game mask");
                     changed.Games[0].Enabled = false; engine.Update(changed); Check(Until(() => engine.AppAffinity.ActiveGames == 1 && OwnMask() == expected, 3000), "self affinity: disabled game enforcement still preserves application separation");
                     changed.Games.Clear(); engine.Update(changed); engine.Refresh(); Check(Until(() => engine.Snapshot().Count == 0 && engine.AppAffinity.ActiveGames == 1 && OwnMask() == expected, 3000), "self affinity: deleted profile remains tracked until its running game exits");
                     game.Kill(); game.WaitForExit(); engine.Refresh(); Check(Until(() => OwnMask() == original && engine.AppAffinity.ActiveGames == 0, 4000), "self affinity: last game exit restores original application mask");
