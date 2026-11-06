@@ -18,7 +18,8 @@ try {
     if ($paths.Count -eq 0) { throw 'No repository files to inspect. Use -Worktree before staging the first import.' }
     $documentPaths = @('README.md','README.ru.md','CHANGELOG.md','CHANGELOG.ru.md',
         'NumaControl/README.md','NumaControl/README.ru.md','NumaControl/USER-GUIDE.md','NumaControl/USER-GUIDE.ru.md')
-    $screenshots = @('library-standard','settings-standard','diagnostics-standard','library-light','library-dark','library-bios')
+    $screenshots = @('library-standard','settings-standard','diagnostics-standard','library-light','library-dark','library-bios',
+        'profile-editor-standard','cpu-selection-standard')
     $imagePaths = @(foreach ($language in @('en','ru')) {
         foreach ($name in $screenshots) { "docs/screenshots/$language-$name.png" }
     })

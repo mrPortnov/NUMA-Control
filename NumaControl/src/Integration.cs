@@ -229,7 +229,7 @@ namespace NumaControl
                 if (!File.Exists(target)) throw new FileNotFoundException(L10n.T("Файл запуска не найден: ") + target);
                 using (Process p = start(new ProcessStartInfo(target, game.Arguments ?? "") { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(target) }))
                 {
-                    if (p != null && systemMask != 0)
+                    if (p != null && systemMask != 0 && !LauncherTargets.IsFortniteProcess(game.ProcessName))
                     {
                         try { using (var handle = Native.Open(p.Id, true)) Native.Apply(handle, game.Matches(target) ? game.CpuMask : systemMask); }
                         catch (System.ComponentModel.Win32Exception) { if (!p.HasExited) throw; }

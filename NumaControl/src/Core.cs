@@ -39,7 +39,11 @@ namespace NumaControl
         [DllImport("user32.dll")] internal static extern bool ShowWindow(IntPtr window, int command);
         internal static SafeProcessHandle Open(int pid, bool writable)
         {
-            SafeProcessHandle handle = OpenProcess(Query | (writable ? Set : 0), false, pid);
+            return Open(pid, Query | (writable ? Set : 0));
+        }
+        internal static SafeProcessHandle Open(int pid, uint access)
+        {
+            SafeProcessHandle handle = OpenProcess(access, false, pid);
             if (!handle.IsInvalid) return handle;
             int error = Marshal.GetLastWin32Error();
             handle.Dispose();
@@ -419,6 +423,7 @@ namespace NumaControl
                     if ((game.CpuMask & ~topology.AllMask) != 0) { status.State = L10n.T("Проверьте ядра"); status.Detail = L10n.T("В профиле есть ЦП, недоступные на этом компьютере."); status.Error = true; continue; }
                     Process[] candidates;
                     if (!processes.TryGetValue(game.ProcessName, out candidates)) { candidates = snapshot.Find(game.ProcessName); processes.Add(game.ProcessName, candidates); }
+                    bool useCpuSets = LauncherTargets.IsFortniteProcess(game.ProcessName);
                     List<string> errors = new List<string>();
                     foreach (Process process in candidates)
                     {
@@ -432,15 +437,33 @@ namespace NumaControl
                                 if (!game.Matches(Native.Image(handle))) continue;
                                 status.Running++;
                                 status.Pids.Add(process.Id);
-                                operation = L10n.T("чтение маски ЦП");
-                                if (Native.ReadMask(handle) != game.CpuMask)
+                                if (useCpuSets)
                                 {
-                                    operation = L10n.T("назначение маски ЦП");
-                                    using (SafeProcessHandle writable = Native.Open(process.Id, true))
+                                    operation = L10n.T("проверка набора CPU Sets");
+                                    uint[] ids = CpuSets.Select(handle, game.CpuMask);
+                                    if (!CpuSets.Matches(handle, ids))
                                     {
-                                        if (!game.Matches(Native.Image(writable))) continue;
-                                        if (Native.Apply(writable, game.CpuMask))
-                                            log.Write(game.Name + " · PID " + process.Id + " → 0x" + game.Mask);
+                                        operation = L10n.T("назначение набора CPU Sets");
+                                        using (SafeProcessHandle writable = Native.Open(process.Id, Native.Query | CpuSets.SetLimited))
+                                        {
+                                            if (!game.Matches(Native.Image(writable))) continue;
+                                            CpuSets.Apply(writable, ids);
+                                            log.Write(game.Name + " · PID " + process.Id + " → Windows CPU Sets 0x" + game.Mask);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    operation = L10n.T("чтение маски ЦП");
+                                    if (Native.ReadMask(handle) != game.CpuMask)
+                                    {
+                                        operation = L10n.T("назначение маски ЦП");
+                                        using (SafeProcessHandle writable = Native.Open(process.Id, true))
+                                        {
+                                            if (!game.Matches(Native.Image(writable))) continue;
+                                            if (Native.Apply(writable, game.CpuMask))
+                                                log.Write(game.Name + " · PID " + process.Id + " → 0x" + game.Mask);
+                                        }
                                     }
                                 }
                                 status.Applied++;
@@ -472,10 +495,15 @@ namespace NumaControl
                     if (errors.Count > 0)
                     {
                         status.State = L10n.T("Нужна проверка");
-                        status.Detail = (status.Applied > 0 ? L10n.T("Маска ЦП подтверждена для процессов: ") + status.Applied + ". " : "") + string.Join(" ", errors.Distinct());
+                        status.Detail = (status.Applied > 0 ? L10n.T(useCpuSets ? "CPU Sets подтверждены для процессов: " : "Маска ЦП подтверждена для процессов: ") + status.Applied + ". " : "") + string.Join(" ", errors.Distinct());
                         status.Error = true;
                     }
-                    else if (status.Running > 0) { status.State = L10n.T("Правило применено"); status.Detail = "PID " + string.Join(", ", status.Pids) + L10n.T(" · маска 0x") + game.Mask + (game.HighPriority ? L10n.T(" · высокий приоритет") : "") + L10n.T(" · автоматическое восстановление"); }
+                    else if (status.Running > 0)
+                    {
+                        status.State = L10n.T(useCpuSets ? "Набор CPU Sets настроен" : "Правило применено");
+                        status.Detail = "PID " + string.Join(", ", status.Pids) + (useCpuSets ? " · Windows CPU Sets 0x" : L10n.T(" · маска 0x")) +
+                            game.Mask + (game.HighPriority ? L10n.T(" · высокий приоритет") : "") + L10n.T(" · автоматическое восстановление");
+                    }
                 }
                 if (selfAffinity != null) selfAffinity.Refresh(c, processes, session, snapshot);
             }

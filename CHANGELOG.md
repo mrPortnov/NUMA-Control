@@ -8,6 +8,8 @@ Downloads and publication dates are available in [GitHub Releases](https://githu
 
 - Launch games through Epic Games, Battle.net and Ubisoft Connect using supported links or game shortcuts.
 - Find the Epic launch link automatically for Fortnite profiles with the default launch target.
+- Apply the selected CPUs to Fortnite through Windows CPU Sets. Confirm the selection separately from the priority result.
+- Expand the English and Russian walkthroughs with screenshots of the profile editor and CPU selection.
 - See which operation Windows denied and whether the requested CPU mask was confirmed.
 
 ## [1.6.1 — BIOS list readability](https://github.com/mrPortnov/NUMA-Control/releases/tag/v1.6.1)
