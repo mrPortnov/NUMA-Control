@@ -1,4 +1,4 @@
-# NUMA Control 1.7.0 — user guide
+# NUMA Control 1.7.1 — user guide
 
 **[English](USER-GUIDE.md) · [Русский](USER-GUIDE.ru.md)**
 
@@ -16,13 +16,13 @@ Download from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releas
 
 | Distribution | Installation |
 |---|---|
-| `NUMA-Control-1.7.0-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
-| `NUMA-Control-1.7.0-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
-| `NUMA-Control-1.7.0-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
+| `NUMA-Control-1.7.1-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
+| `NUMA-Control-1.7.1-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
+| `NUMA-Control-1.7.1-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
 
 The app, setup EXE and MSI are currently unsigned. Compare downloaded files with `SHA256SUMS.txt` from the same release; the portable ZIP also contains a per-file `SHA256.txt`. Checksums check integrity, not publisher identity. Respect Windows and organizational protection policies.
 
-Close the app through its tray menu before updating, repairing, moving or uninstalling. Windows Installer supports repair and upgrade of the installed version. Uninstall via Windows Settings or the Start-menu uninstall shortcut. It removes program files and shortcuts owned by that copy, including recognized autostart/game shortcuts, while preserving user-generated `data`. Shortcuts belonging to a different portable copy are preserved. Shared .NET is not removed. Remove retained data separately only if you intend to erase it.
+Close the app through its tray menu before updating, repairing, moving or uninstalling. Update with the same package type you originally installed. Setup.exe installations use the NUMA Control entry in **Windows Settings → Apps** for removal. A standalone MSI also provides a Start-menu uninstall shortcut and supports repair through Windows Installer. Uninstall removes program files and shortcuts owned by that copy, including recognized autostart and game shortcuts, while preserving your `data` folder and shared .NET.
 
 To move a portable installation, move the entire folder including `data`. To move from portable to MSI, close both copies, back up `data`, then copy it to the installed location or use profile export/import. Imported game icons will be located again. Recreate autostart and game shortcuts for the new application path. Do not run different copies with separate libraries simultaneously.
 

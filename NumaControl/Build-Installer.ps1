@@ -1,8 +1,10 @@
 #requires -Version 5.1
-param([string]$ProductVersion='1.7.0',[string]$OutputPath,[switch]$InjectRollback,[string]$IsolationId)
+param([string]$ProductVersion='1.7.1',[string]$OutputPath,[switch]$InjectRollback,[string]$IsolationId,[string]$FixtureExe)
 $ErrorActionPreference='Stop'
 if($ProductVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a three-part MSI version.' }
 if($IsolationId -and $IsolationId -notmatch '^[0-9a-f]{32}$') { throw 'IsolationId must be a lowercase GUID without separators.' }
+if($FixtureExe -and -not $IsolationId) { throw 'A replacement executable is available only for an isolated installer test.' }
+$application=if($FixtureExe) { (Resolve-Path -LiteralPath $FixtureExe).Path } else { Join-Path $PSScriptRoot 'NUMA-Control.exe' }
 $toolDirectory=Join-Path $PSScriptRoot '.tools\wix-3.14.1'
 if(-not(Test-Path -LiteralPath (Join-Path $toolDirectory 'candle.exe'))) { throw 'WiX 3.14.1 portable tools are required in .tools\wix-3.14.1. Download wix314-binaries.zip from the official wix3141rtm GitHub release.' }
 & (Join-Path $PSScriptRoot 'installer\Build-Branding.ps1')
@@ -22,7 +24,7 @@ if($IsolationId) {
     $authoring=Join-Path $build ('isolated-'+$ProductVersion+'-'+$IsolationId+'.wxs'); [IO.File]::WriteAllText($authoring,$isolatedSource,[Text.UTF8Encoding]::new($false))
     $object=Join-Path $build ('isolated-'+$ProductVersion+'-'+$IsolationId+'.wixobj')
 }
-$defines=@(('-dProjectRoot='+$PSScriptRoot), ('-dProductVersion='+$ProductVersion), ('-dProductCode='+$productCode))
+$defines=@(('-dProjectRoot='+$PSScriptRoot), ('-dApplicationExe='+$application), ('-dProductVersion='+$ProductVersion), ('-dProductCode='+$productCode))
 if($InjectRollback) { $defines+='-dInjectRollback=1' }
 & (Join-Path $toolDirectory 'candle.exe') -nologo -arch x64 @defines -out $object $authoring
 if($LASTEXITCODE -ne 0) { throw 'MSI authoring compilation failed.' }
@@ -30,5 +32,5 @@ if($LASTEXITCODE -ne 0) { throw 'MSI authoring compilation failed.' }
 # exclusively per-user and has an explicit NOT ALLUSERS launch condition.
 & (Join-Path $toolDirectory 'light.exe') -nologo -cultures:ru-ru -sice:ICE90 -sice:ICE91 -ext (Join-Path $toolDirectory 'WixUIExtension.dll') -out $OutputPath $object
 if($LASTEXITCODE -ne 0) { throw 'MSI linking or validation failed.' }
-[pscustomobject]@{ProductVersion=$ProductVersion;ProductCode=$productCode;UpgradeCode=$upgradeCode;IsolationId=$IsolationId;File=[IO.Path]::GetFileName($OutputPath);SHA256=(Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256).Hash;ApplicationSHA256=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'NUMA-Control.exe') -Algorithm SHA256).Hash;Scope='Current user';DataPolicy='Keep user-generated data on uninstall'}|ConvertTo-Json|Set-Content -LiteralPath ($OutputPath+'.json') -Encoding UTF8
+[pscustomobject]@{ProductVersion=$ProductVersion;ProductCode=$productCode;UpgradeCode=$upgradeCode;IsolationId=$IsolationId;File=[IO.Path]::GetFileName($OutputPath);SHA256=(Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256).Hash;ApplicationSHA256=(Get-FileHash -LiteralPath $application -Algorithm SHA256).Hash;Scope='Current user';DataPolicy='Keep user-generated data on uninstall'}|ConvertTo-Json|Set-Content -LiteralPath ($OutputPath+'.json') -Encoding UTF8
 Write-Host "Installer built: $OutputPath"
