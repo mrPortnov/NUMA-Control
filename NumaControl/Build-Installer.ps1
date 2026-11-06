@@ -1,5 +1,5 @@
 #requires -Version 5.1
-param([string]$ProductVersion='1.6.1',[string]$OutputPath,[switch]$InjectRollback,[string]$IsolationId)
+param([string]$ProductVersion='1.7.0',[string]$OutputPath,[switch]$InjectRollback,[string]$IsolationId)
 $ErrorActionPreference='Stop'
 if($ProductVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a three-part MSI version.' }
 if($IsolationId -and $IsolationId -notmatch '^[0-9a-f]{32}$') { throw 'IsolationId must be a lowercase GUID without separators.' }

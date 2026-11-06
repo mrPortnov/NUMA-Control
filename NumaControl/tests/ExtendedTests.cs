@@ -203,6 +203,18 @@ namespace NumaControl
                 Press(w, "PauseAll"); Check(!controller.Config.Paused, "global continue resumes observation"); Press(w, "PauseAll"); Check(controller.Config.Paused, "global pause stops observation");
                 interaction.Editors.Enqueue(editor => { Press(editor, "SaveProfile"); Check(interaction.Messages.Last().Contains("название"), "empty editor validation explains missing name"); Press(editor, "CancelProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 3, "cancel add leaves library intact");
+                string launcherLink = Path.Combine(directory, "Game launcher.url");
+                const string launcherUri = "uplay://launch/123/0";
+                File.WriteAllText(launcherLink, "[InternetShortcut]\r\nURL=" + launcherUri + "\r\n");
+                interaction.Editors.Enqueue(editor =>
+                {
+                    interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe");
+                    interaction.OpenPaths.Enqueue(launcherLink); Press(editor, "BrowseLauncherShortcut");
+                    Check(Control<TextBox>(editor, "GamePathInput").Text == fixture && Control<TextBox>(editor, "LaunchTargetInput").Text == launcherUri,
+                        "profile editor imports the launcher shortcut without changing the monitored EXE");
+                    Press(editor, "CancelProfile");
+                });
+                Press(w, "AddGame");
                 interaction.Editors.Enqueue(editor => { interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe"); Check(Control<TextBox>(editor, "GamePathInput").Text == fixture, "browse game fills exact path"); Check(Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(fixture), "browse game derives process name"); Control<TextBox>(editor, "GameNameInput").Text = "Тест игрового профиля"; interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseLaunchExe"); Press(editor, "SaveProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 4 && Control<TextBlock>(w, "SelectedName").Text == "Тест игрового профиля", "add via EXE creates and selects persisted profile");
                 string fixtureId = controller.Config.Games.Last().Id;
@@ -340,7 +352,7 @@ namespace NumaControl
                 Capture(editor, prefix + "profile-editor");
                 CheckBox priority = Control<CheckBox>(editor, "HighPriorityToggle"); priority.BringIntoView(); Pump();
                 Capture(editor, prefix + "profile-editor-bottom");
-                foreach (string label in new[] { "Название в библиотеке", "Имя процесса без .exe", "Точный путь к EXE игры · можно оставить пустым", "Цель запуска · EXE игры / лаунчера или ссылка Steam / Astrum", "Аргументы запуска · только для EXE" })
+                foreach (string label in new[] { "Название в библиотеке", "Имя процесса без .exe", "Точный путь к EXE игры · можно оставить пустым", "Цель запуска · EXE или ссылка лаунчера", "Аргументы запуска · только для EXE" })
                 {
                     TextBlock caption = Descendants(editor).OfType<TextBlock>().Single(text => text.Text == L10n.T(label));
                     Check(Contrast(((SolidColorBrush)caption.Foreground).Color.ToString(), ((SolidColorBrush)editor.Background).Color.ToString()) >= 4.5, "profile field label has readable contrast / " + prefix + " / " + L10n.T(label));

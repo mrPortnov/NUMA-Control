@@ -47,14 +47,14 @@ Get files from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/relea
 
 | Package | Best for | How to start |
 |---|---|---|
-| `NUMA-Control-1.6.1-setup-x64.exe` | Recommended setup; downloads the official Microsoft .NET Framework 4.8 prerequisite only when missing | Run setup, then complete the application wizard |
-| `NUMA-Control-1.6.1-setup-x64.msi` | A regular per-user installation and Windows uninstall/repair support | Run the installer, then launch NUMA Control from Start |
-| `NUMA-Control-1.6.1-portable-x64.zip` | Running from an extracted folder without installation registration | Extract the entire ZIP to a writable folder and run `Open-NUMA.cmd` or `NUMA-Control.exe` |
+| `NUMA-Control-1.7.0-setup-x64.exe` | Recommended setup; downloads the official Microsoft .NET Framework 4.8 prerequisite only when missing | Run setup, then complete the application wizard |
+| `NUMA-Control-1.7.0-setup-x64.msi` | A regular per-user installation and Windows uninstall/repair support | Run the installer, then launch NUMA Control from Start |
+| `NUMA-Control-1.7.0-portable-x64.zip` | Running from an extracted folder without installation registration | Extract the entire ZIP to a writable folder and run `Open-NUMA.cmd` or `NUMA-Control.exe` |
 | `SHA256SUMS.txt` | Verifying the downloaded distributions | Compare its hash with `Get-FileHash` |
 
 ### Recommended setup and .NET prerequisite
 
-Run `NUMA-Control-1.6.1-setup-x64.exe`. It detects .NET Framework 4.8 or later and skips the download when it is present. Otherwise it downloads the official Microsoft web installer and installs the runtime before the application MSI. Internet access, administrator approval and sometimes a restart are required for the system runtime. Uninstalling NUMA Control does not remove shared .NET.
+Run `NUMA-Control-1.7.0-setup-x64.exe`. It detects .NET Framework 4.8 or later and skips the download when it is present. Otherwise it downloads the official Microsoft web installer and installs the runtime before the application MSI. Internet access, administrator approval and sometimes a restart are required for the system runtime. Uninstalling NUMA Control does not remove shared .NET.
 
 The separate MSI and portable ZIP require .NET Framework 4.8 to be installed already. They do not download dependencies. The application itself remains offline; network access belongs to the optional prerequisite setup.
 
@@ -79,9 +79,9 @@ Keep the application, configuration, launcher and documentation from the ZIP tog
 ### Verify a download
 
 ```powershell
-Get-FileHash .\NUMA-Control-1.6.1-setup-x64.exe -Algorithm SHA256
-Get-FileHash .\NUMA-Control-1.6.1-setup-x64.msi -Algorithm SHA256
-Get-FileHash .\NUMA-Control-1.6.1-portable-x64.zip -Algorithm SHA256
+Get-FileHash .\NUMA-Control-1.7.0-setup-x64.exe -Algorithm SHA256
+Get-FileHash .\NUMA-Control-1.7.0-setup-x64.msi -Algorithm SHA256
+Get-FileHash .\NUMA-Control-1.7.0-portable-x64.zip -Algorithm SHA256
 ```
 
 Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also contains `SHA256.txt` for its individual files. Checksums verify integrity; the current application EXE, setup EXE and MSI are **not signed with a trusted code-signing certificate**.
@@ -95,6 +95,8 @@ Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also
 5. Start the game normally or choose **Launch game**. The profile shows waiting, applied, paused or access-error status.
 
 Example process names are `cs2.exe` for Counter-Strike 2, `dota2.exe` for Dota 2 and `Game.exe` for Warface. Steam targets such as `steam://rungameid/730` and `steam://rungameid/570` are supported. The game process path and the launcher target are separate fields. Arbitrary shell commands are not executed as launch targets.
+
+For **Epic Games, Battle.net and Ubisoft Connect**, choose the game EXE, then use **Use game shortcut** to import a game shortcut created by its launcher. If the client opens the game page, press **Play** there. For **Fortnite**, choose **Set up Fortnite** to fill the installed game EXE and Epic launch link. Windows may grant read access while denying changes to CPU affinity and priority. The profile status identifies the operation that failed.
 
 The application does not bundle the games, inject into them or modify their files. It uses Windows process queries and affinity/priority operations; it does not read or modify game memory.
 

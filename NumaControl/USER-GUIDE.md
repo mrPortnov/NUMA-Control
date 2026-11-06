@@ -1,4 +1,4 @@
-# NUMA Control 1.6.1 — user guide
+# NUMA Control 1.7.0 — user guide
 
 **[English](USER-GUIDE.md) · [Русский](USER-GUIDE.ru.md)**
 
@@ -16,9 +16,9 @@ Download from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releas
 
 | Distribution | Installation |
 |---|---|
-| `NUMA-Control-1.6.1-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
-| `NUMA-Control-1.6.1-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
-| `NUMA-Control-1.6.1-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
+| `NUMA-Control-1.7.0-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
+| `NUMA-Control-1.7.0-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
+| `NUMA-Control-1.7.0-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
 
 The app, setup EXE and MSI are currently unsigned. Compare downloaded files with `SHA256SUMS.txt` from the same release; the portable ZIP also contains a per-file `SHA256.txt`. Checksums check integrity, not publisher identity. Respect Windows and organizational protection policies.
 
@@ -78,9 +78,17 @@ Use Tab/Shift+Tab to navigate, Space for buttons/toggles, Enter for a dialog's m
 
 A missing target or unavailable launcher produces a message; monitoring remains enabled and can detect a normal launcher start. Renaming a profile or changing its mask preserves its ID and shortcut. Deleting the profile invalidates its shortcut. Moving the controller requires recreating shortcuts.
 
-The matching **game EXE** and **launch target** are independent. For example, monitor `cs2.exe` while launching `steam://rungameid/730`, or `dota2.exe` with `steam://rungameid/570`. `Game.exe` and `astrumplay://play/0.1177` are another example. Set an exact game path for common filenames. Supported targets are an absolute EXE path, `steam://rungameid/NUMBER` or a supported `astrumplay://play/...` URI. Arbitrary shell commands, BAT/CMD files and other URL schemes are rejected.
+The matching **game EXE** and **launch target** are independent. For example, monitor `cs2.exe` while launching `steam://rungameid/730`. Set an exact game path for common filenames. Supported targets include absolute EXE paths and game links for Steam, Astrum, Epic Games, Battle.net and Ubisoft Connect.
 
-A direct game EXE receives its game mask immediately. A launcher is started with the general inherited mask restored so its other children are not accidentally restricted. Steam/Astrum URIs are handled by Windows. Later matching uses polling, not a real-time scheduling guarantee.
+A directly launched game can receive its mask at startup. Imported shortcuts and Epic Games, Battle.net and Ubisoft Connect links go through Windows Shell. The observer checks the matching game process as it appears and reports the operation that failed if Windows denies access.
+
+### Launcher games and Fortnite
+
+1. In the launcher, create a desktop shortcut for the game. In NUMA Control, choose the actual game EXE.
+2. Choose **Use game shortcut**, open the `.lnk` or `.url`, then review the launch target and arguments before saving.
+3. Choose **Launch game**. If Battle.net or another client opens the game page, press **Play** in that client. The observer waits for the game process.
+
+For Fortnite, **Set up Fortnite** fills the profile from a local Epic installation. If it cannot find the installation, select `FortniteClient-Win64-Shipping.exe` and import the Epic-generated Fortnite shortcut. Windows may let NUMA Control read the game’s mask while denying permission to change it. If the status reports access denied while setting CPU affinity, the requested mask could not be confirmed.
 
 ## CPU map and saved masks
 
@@ -114,7 +122,7 @@ Up to **100 profiles** can be stored. Choose cores on the library page after sav
 | Process name | Executable name without `.exe` or a directory; file/process selection fills it automatically. |
 | Exact game EXE path | Optional additional match. Leave empty for name-only matching; recommended for common names. |
 | Launch target | Full EXE path or supported URI. An empty target falls back to the game path. Selecting a launcher does not change the matched game. |
-| Launch arguments | Used for EXE targets, not appended to Steam/Astrum URIs. Maximum 4,096 characters; CR/LF/NUL are rejected. |
+| Launch arguments | Used for EXE targets only. Maximum 4,096 characters. |
 | High process priority | Requests High using Windows APIs. Enabled for new profiles; older profiles without this field keep their former behavior. RealTime is never used. |
 | Automatically monitor | Initial/current value of the profile's Monitor switch. |
 | Save game / Enter | Validates fields, overlapping rules and disk writes. On failure, the editor and entered data remain open. |
@@ -225,7 +233,7 @@ The app works offline and does not automatically send reports. Optional setup do
 |---|---|
 | Access denied | The game may be elevated or protected. If needed, exit the ordinary controller and run it at the same elevation. An administrator can still be denied by game protection. |
 | Incompatible mask / changed CPU | Review logical CPUs and save a valid mask before resuming. Multi-group systems are unsupported. |
-| Steam/Astrum target does not open | Check that the client is installed and the target is valid; launch normally while monitoring waits. |
+| Launcher target does not open | Check the installed client and import a fresh game shortcut. You can start the game from the client while monitoring waits. |
 | Shortcut no longer works | Check for a deleted profile or moved application and recreate it. |
 | Unexpected resource use | Inspect diagnostics/logs and polling rate; distinguish warm-up, interface measurement overhead and sustained growth. |
 | Windows blocks the package | Check release origin and checksum. Unsigned software may be blocked by Smart App Control or organizational rules; the app does not change those protections. |

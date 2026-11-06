@@ -195,6 +195,20 @@ namespace NumaControl
             string target = string.IsNullOrWhiteSpace(game.LaunchTarget) ? game.ExePath : game.LaunchTarget;
             if (string.IsNullOrWhiteSpace(target)) throw new InvalidOperationException(L10n.T("Укажите EXE или ссылку лаунчера в параметрах игры. Наблюдатель уже включён: игру можно запустить обычным способом."));
             Configuration.ValidateLaunch(target);
+            if (LauncherTargets.IsClientUri(target) || game.LaunchViaShell)
+            {
+                var info = new ProcessStartInfo(target) { UseShellExecute = true };
+                if (!Configuration.IsGameUri(target))
+                {
+                    if (!File.Exists(target)) throw new FileNotFoundException(L10n.T("Файл запуска не найден: ") + target);
+                    Configuration.ValidateLaunchArguments(game.Arguments);
+                    LauncherTargets.ValidateDirectory(game.LaunchDirectory);
+                    info.Arguments = game.Arguments ?? "";
+                    info.WorkingDirectory = string.IsNullOrEmpty(game.LaunchDirectory) ? Path.GetDirectoryName(target) : game.LaunchDirectory;
+                }
+                using (Process p = start(info)) { }
+                return;
+            }
             if (Configuration.IsGameUri(target))
             {
                 using (Process p = start(new ProcessStartInfo(target) { UseShellExecute = true }))
