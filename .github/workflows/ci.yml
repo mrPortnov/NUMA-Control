@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
       - name: Inspect committed files
         shell: powershell
-        run: ./scripts/Test-RepositorySafety.ps1 -History
+        run: ./scripts/Test-RepositorySafety.ps1 -Worktree -History
       - name: Scan Git history with Gitleaks
         shell: powershell
         run: |

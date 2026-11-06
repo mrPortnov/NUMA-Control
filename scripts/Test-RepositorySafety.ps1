@@ -65,6 +65,12 @@ try {
             if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { $findings.Add($path + ': symbolic link or reparse point'); continue }
             $length = $file.Length
             if (-not $binary) { $content = [IO.File]::ReadAllText($fullPath) }
+            if ($extension -eq '.ps1' -and $content -match '[^\x00-\x7F]') {
+                $bytes = [IO.File]::ReadAllBytes($fullPath)
+                if ($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF) {
+                    $findings.Add($path + ': non-ASCII PowerShell script must have a UTF-8 BOM for Windows PowerShell 5.1')
+                }
+            }
         } else {
             $objectName = ':' + $path
             $sizeOutput = & git cat-file -s $objectName

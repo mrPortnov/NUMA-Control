@@ -13,7 +13,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Commit the reviewed source before building a release.' }
     $status = @(& git status --porcelain)
     if ($LASTEXITCODE -ne 0 -or $status.Count -gt 0) { throw 'The tracked source and visible untracked files must be clean.' }
-    & (Join-Path $PSScriptRoot 'Test-RepositorySafety.ps1') -History
+    & (Join-Path $PSScriptRoot 'Test-RepositorySafety.ps1') -Worktree -History
     $output = Join-Path $root ('output\releases\v' + $Version)
     if (Test-Path -LiteralPath $output) { throw 'Release directory already exists. Inspect it; do not silently replace a release.' }
     if ($WithInstaller) {
