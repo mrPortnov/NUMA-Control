@@ -431,7 +431,14 @@ namespace NumaControl
                 click("Пауза наблюдения"); Check(!controller.Config.Paused, "tray pause command resumes observation"); click("Пауза наблюдения"); Check(controller.Config.Paused, "tray pause command pauses observation");
                 click("Автозапуск Windows"); Check(File.Exists(env.StartupPath), "tray autostart enables isolated shortcut"); click("Автозапуск Windows"); Check(!File.Exists(env.StartupPath), "tray autostart disables isolated shortcut");
                 click("Самодиагностика"); Check(Control<ScrollViewer>(w, "DiagnosticsView").Visibility == Visibility.Visible, "tray diagnostics opens resource screen");
-                Press(w, "LibraryNav"); Press(w, "PresetAll"); dialogs.Answers.Enqueue(MessageBoxResult.Cancel); click("Выход"); Check(w.IsVisible && !app.Dispatcher.HasShutdownStarted, "tray exit cancellation preserves unsaved draft and running app");
+                Press(w, "LibraryNav");
+                string saved = Control<TextBlock>(w, "MaskLabel").Text;
+                ToggleButton tile = Descendants(Control<WrapPanel>(w, "CpuMap")).OfType<ToggleButton>().First();
+                typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(tile, null);
+                string unsaved = Control<TextBlock>(w, "MaskLabel").Text;
+                dialogs.Answers.Enqueue(MessageBoxResult.Cancel); click("Выход");
+                Check(w.IsVisible && !app.Dispatcher.HasShutdownStarted && Control<TextBlock>(w, "MaskLabel").Text == unsaved &&
+                    unsaved != saved, "tray exit cancellation preserves unsaved draft and running app");
                 dialogs.Answers.Enqueue(MessageBoxResult.No); click("Выход"); if (!app.Dispatcher.HasShutdownStarted) Pump(); Check(!w.IsVisible, "tray exit confirmation closes interface and requests shutdown");
             }
         }
