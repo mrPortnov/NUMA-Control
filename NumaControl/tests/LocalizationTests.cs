@@ -61,6 +61,26 @@ namespace NumaControl
                         if (language == "en") Check(!Descendants(window).OfType<TextBlock>().Where(t => t.IsVisible).Any(t => Regex.IsMatch(t.Text ?? "", "[А-Яа-яЁё]")), "English library contains no untranslated labels / " + theme);
                         string libraryName = theme == "standard" ? "library-standard" : theme == "win11-light" ? "library-light" : theme == "win11-dark" ? "library-dark" : "library-bios";
                         Capture(window, "readme-" + language + "-" + libraryName);
+                        if (theme == "standard")
+                        {
+                            ToggleButton tile = Descendants(Control<WrapPanel>(window, "CpuMap")).OfType<ToggleButton>().First();
+                            MethodInfo click = typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic);
+                            click.Invoke(tile, null);
+                            Control<Button>(window, "SaveMask").BringIntoView();
+                            Pump();
+                            Capture(window, "readme-" + language + "-cpu-selection-standard");
+                            click.Invoke(tile, null);
+                            Control<ScrollViewer>(window, "LibraryView").ScrollToTop();
+                            Pump();
+                            interaction.Editors.Enqueue(editor =>
+                            {
+                                editor.Height = 960;
+                                Pump();
+                                Capture(editor, "readme-" + language + "-profile-editor-standard");
+                                Press(editor, "CancelProfile");
+                            });
+                            Press(window, "EditGame");
+                        }
                         Press(window, "SettingsNav");
                         Check(Control<TextBlock>(window, "AboutVersion").Text == "NUMA Control " + typeof(Program).Assembly.GetName().Version.ToString(3), "About shows only the application version without core/thread/group counts / " + language + " / " + theme);
                         DropdownContrastChecks(window, language, theme);

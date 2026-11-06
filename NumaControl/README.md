@@ -4,7 +4,7 @@
 
 NUMA Control assigns selected CPU cores to game processes using the standard Windows affinity APIs. It provides profiles, physical-core/SMT selection, background monitoring, a tray menu, four themes and local diagnostics. Affinity does not guarantee higher FPS: compare frame times and stability in your own games.
 
-> **Anti-cheat warning:** Tested only with Valve Anti-Cheat (VAC). Compatibility with other anti-cheat systems has not been tested or confirmed. VAC testing is not certification or a guarantee against restrictions by the game. Check the rules of your game before using process affinity or priority tools.
+> **Anti-cheat compatibility:** Hard affinity and process priority were verified only with Valve Anti-Cheat (VAC). Epic launch and Windows CPU Sets were verified separately in Fortnite with Easy Anti-Cheat active. Windows denied High priority in that check.
 
 NUMA Control uses documented Windows APIs to query processes and change their CPU affinity ([SetProcessAffinityMask](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask)) and, optionally, priority ([SetPriorityClass](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)). It does not inject DLLs or code, read or modify game memory, patch game files or bypass anti-cheat. It opens process handles for these Windows operations; this does not imply approval by an anti-cheat provider.
 
@@ -32,7 +32,7 @@ Open **Settings → Interface language → Русский / English**. On the in
 
 Examples: `cs2.exe`, `dota2.exe`, `Game.exe`. Steam launch targets include `steam://rungameid/730` and `steam://rungameid/570`; `astrumplay://play/0.1177` is another supported target. The game's matching EXE and its launch target are separate fields. Arbitrary shell commands are rejected.
 
-For Epic Games, Battle.net and Ubisoft Connect, select the game EXE and import its launcher shortcut with **Use game shortcut**. For Fortnite, add `FortniteClient-Win64-Shipping.exe` and leave the launch target and arguments blank to use the Epic link automatically. Check the profile status for the result of CPU affinity and priority operations.
+For Epic Games, Battle.net and Ubisoft Connect, select the game EXE and import its launcher shortcut with **Use game shortcut**. For Fortnite, add `FortniteClient-Win64-Shipping.exe` and leave the launch target and arguments blank to use the Epic link automatically. Save the CPU selection. **CPU Sets configured** confirms the game's default CPU selection. If Windows denies High priority, the status shows that result separately. See the [Fortnite walkthrough](USER-GUIDE.md#configure-fortnite).
 
 ## CPU presets
 

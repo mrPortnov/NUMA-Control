@@ -80,6 +80,42 @@ namespace NumaControl
             Reject(() => GameLauncher.Launch(saved, topology.AllMask, capture, folder),
                 "Fortnite does not choose Epic metadata for a different installation");
             Check(launch == null, "Fortnite does not silently fall back to starting the client EXE");
+            FortniteCpuSetChecks(topology, binary);
+        }
+
+        private static void FortniteCpuSetChecks(Topology topology, string executable)
+        {
+            ulong chosen = 1UL << Topology.FirstBit(topology.AllMask);
+            var profile = new GameProfile { Name = "CPU Sets fixture", ProcessName = Path.GetFileNameWithoutExtension(executable),
+                ExePath = executable, Mask = chosen.ToString("X"), Enabled = true, HighPriority = false };
+            var config = new Configuration();
+            config.Games.Add(profile);
+            using (Process game = Process.Start(new ProcessStartInfo(executable) { UseShellExecute = false }))
+            using (var engine = new WatchEngine(config, topology, new AppLog(Path.Combine(root, "cpu-sets-log"))))
+            try
+            {
+                using (var handle = Native.Open(game.Id, Native.Query | CpuSets.SetLimited))
+                {
+                    ulong hardMask = Native.ReadMask(handle);
+                    uint priority = Native.ReadPriority(handle);
+                    GameStatus status = engine.Scan(config)[profile.Id];
+                    Check(status.Running == 1 && status.Applied == 1 && status.State == L10n.T("Набор CPU Sets настроен"),
+                        "Fortnite's matched process is confirmed using Windows CPU Sets");
+                    Check(CpuSets.Matches(handle, CpuSets.Select(handle, chosen)) && Native.ReadMask(handle) == hardMask && Native.ReadPriority(handle) == priority,
+                        "Windows confirms selected default CPU Sets independently of hard affinity and priority");
+                    CpuSets.Apply(handle, Array.Empty<uint>());
+                    config.Paused = true;
+                    engine.Scan(config);
+                    Check(CpuSets.Matches(handle, Array.Empty<uint>()), "pause leaves externally cleared CPU Sets alone");
+                    config.Paused = false;
+                    engine.Scan(config);
+                    Check(CpuSets.Matches(handle, CpuSets.Select(handle, chosen)), "resuming restores the selected default CPU Sets");
+                    profile.Mask = hardMask.ToString("X");
+                    engine.Scan(config);
+                    Check(CpuSets.Matches(handle, CpuSets.Select(handle, hardMask)), "choosing all allowed CPUs replaces the previous narrower CPU Sets");
+                }
+            }
+            finally { if (!game.HasExited) { game.Kill(); game.WaitForExit(); } }
         }
     }
 }

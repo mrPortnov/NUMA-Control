@@ -88,7 +88,18 @@ A directly launched game can receive its mask at startup. Imported shortcuts and
 2. Choose **Use game shortcut**, open the `.lnk` or `.url`, then review the launch target and arguments before saving.
 3. Choose **Launch game**. If Battle.net or another client opens the game page, press **Play** in that client. The observer waits for the game process.
 
-For Fortnite, add `FortniteClient-Win64-Shipping.exe` from the list of running processes or select the file. Leave the launch target and arguments blank. **Launch game** looks up the link in the local Epic installation. Existing profiles that point to the same game EXE for launching also use the Epic link if they have no launch arguments. If the link cannot be found, import the Fortnite shortcut created by Epic or start the game from the launcher. Windows may let NUMA Control read the game’s mask while denying permission to change it. If the status reports access denied while setting CPU affinity, the requested mask could not be confirmed.
+#### Configure Fortnite
+
+1. Open Fortnite from Epic and select `FortniteClient-Win64-Shipping.exe` under **Add game → From running processes**. You can select the same file with **Choose .exe file** while the game is closed.
+2. Leave the launch target and arguments blank and choose **Save game**. Existing profiles that use the exact game EXE as their launch target also use the Epic link if there are no launch arguments.
+3. In the library, choose the CPUs you want, then choose **Save affinity**. Turn on **Monitor** and resume global monitoring if it is paused.
+4. Start the game through Epic or choose **Launch game**. If the local Epic link cannot be found, import the Fortnite shortcut created by Epic or start the game in the client.
+
+For Fortnite, NUMA Control uses **Windows CPU Sets**. Windows records a default CPU selection for threads without their own selection. An existing hard affinity mask still takes precedence. Task Manager's hard affinity view may therefore show all CPUs even when the game's default CPU Sets match your selection. The controller uses the hard affinity mask when selecting its own cores. [Microsoft CPU Sets documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets)
+
+**CPU Sets configured** confirms the selection. If **Review needed** confirms CPU Sets and reports an error setting High priority, the CPU selection was applied and the priority request failed. For CPU selection alone, turn off **High game process priority** in the profile options. Use **All CPUs → Save affinity** with monitoring enabled to broaden the selection. Close and reopen Fortnite to start a fresh process.
+
+The [illustrated walkthrough](https://github.com/mrPortnov/NUMA-Control/blob/main/README.md#first-game-profile) shows the profile editor and CPU map.
 
 ## CPU map and saved masks
 
@@ -121,7 +132,7 @@ Up to **100 profiles** can be stored. Choose cores on the library page after sav
 | Display name | Up to 80 characters. |
 | Process name | Executable name without `.exe` or a directory; file/process selection fills it automatically. |
 | Exact game EXE path | Optional additional match. Leave empty for name-only matching; recommended for common names. |
-| Launch target | Full EXE path or supported URI. An empty target falls back to the game path. Selecting a launcher does not change the matched game. |
+| Launch target | Full EXE path or supported URI. For Fortnite, the empty target uses the local Epic link. Other profiles fall back to their game path. |
 | Launch arguments | Used for EXE targets only. Maximum 4,096 characters. |
 | High process priority | Requests High using Windows APIs. Enabled for new profiles; older profiles without this field keep their former behavior. RealTime is never used. |
 | Automatically monitor | Initial/current value of the profile's Monitor switch. |

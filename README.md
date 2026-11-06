@@ -8,13 +8,13 @@ A Windows desktop application for assigning game processes to selected CPU cores
 
 ![NUMA Control game library and CPU selection, standard theme](docs/screenshots/en-library-standard.png)
 
-> **Anti-cheat warning:** Tested only with Valve Anti-Cheat (VAC). Compatibility with other anti-cheat systems has not been tested or confirmed. VAC testing is not certification or a guarantee against restrictions by the game. Check the rules of your game before using process affinity or priority tools.
+> **Anti-cheat compatibility:** Valve Anti-Cheat (VAC) is the only anti-cheat for which hard affinity and process priority have been verified. Fortnite was checked separately with Epic launch and Windows CPU Sets while Easy Anti-Cheat was active. High priority was denied in that check. Check your game's rules before using process scheduling tools.
 
-NUMA Control uses documented Windows APIs to query processes and change their CPU affinity ([SetProcessAffinityMask](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask)) and, optionally, priority ([SetPriorityClass](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)). It does not inject DLLs or code, read or modify game memory, patch game files or bypass anti-cheat. It opens process handles for these Windows operations; this does not imply approval by an anti-cheat provider.
+NUMA Control uses documented Windows APIs to query processes, select their CPUs and request process priority. For Fortnite it uses Windows CPU Sets. It opens process handles for these operations and does not inject code, read or modify game memory, patch game files or bypass anti-cheat. [Windows CPU affinity](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask) · [Windows CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets) · [Process priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)
 
 ## What it does
 
-NUMA Control sets a process CPU affinity mask through the normal Windows APIs. A profile describes the game executable, the allowed logical processors and optional launch settings. The controller watches for matching processes and reapplies the rule when necessary.
+Each profile stores the game executable, the selected logical processors and optional launch settings. The controller watches for matching processes and reapplies the CPU selection when necessary.
 
 Affinity can help you experiment with a particular game and CPU configuration. It does **not** guarantee higher FPS or lower latency. Compare frame times and stability in your own workload before keeping a setting.
 
@@ -88,19 +88,27 @@ Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also
 
 ## First game profile
 
-1. Choose **Add game**, then select a process or executable.
-2. Give the profile a recognizable name. For common executable names, set the exact game path as well.
-3. Select the logical processors the game may use. Review the physical-core grouping before applying a preset.
-4. Save the affinity and enable **Monitor**.
-5. Start the game normally or choose **Launch game**. The profile shows waiting, applied, paused or access-error status.
+1. Start the game once, then choose **Add game → From running processes** and select the game itself. You can also use **Choose .exe file** while the game is closed.
+2. Give the profile a recognizable name. Keep the exact path if multiple games use the same EXE name. Save the profile to open its CPU map.
+3. Choose a preset or click individual CPU tiles. Use **Save affinity** when the selection is ready, then enable **Monitor**. Resume global monitoring if it is paused.
+4. Start the game from its launcher or use **Launch game**. Read the status in the game card. **Waiting for game** means no matching process is active. **Review needed** gives the operation and error to check.
 
-Example process names are `cs2.exe` for Counter-Strike 2, `dota2.exe` for Dota 2 and `Game.exe` for Warface. Steam targets such as `steam://rungameid/730` and `steam://rungameid/570` are supported. The game process path and the launcher target are separate fields. Arbitrary shell commands are not executed as launch targets.
+![Game profile editor with separate fields for the game and its launch target](docs/screenshots/en-profile-editor-standard.png)
 
-For **Epic Games, Battle.net and Ubisoft Connect**, choose the game EXE, then use **Use game shortcut** to import a game shortcut created by its launcher. If the client opens the game page, press **Play** there.
+### Which file or link to use
 
-For **Fortnite**, add `FortniteClient-Win64-Shipping.exe` from the list of running processes or select the file. Leave the launch target and arguments blank. **Launch game** uses the Epic link from the local installation. If the link cannot be found, import the Fortnite shortcut or start the game in Epic Games Launcher. Starting the game through Epic does not grant permission to change its CPU affinity or priority. Check the profile status for any operation Windows denied.
+| Game source | What to enter in the profile |
+|---|---|
+| Direct Windows EXE | Select the game EXE. Use the optional arguments field for that EXE. |
+| Steam | Match the game EXE and enter its Steam link as the launch target. Examples are `cs2.exe` with `steam://rungameid/730` and `dota2.exe` with `steam://rungameid/570`. |
+| Epic Games, Battle.net or Ubisoft Connect | Select the game EXE, then choose **Use game shortcut** and import the shortcut created by the client. If it opens the game page, press **Play** in the client. |
+| Fortnite | Select the running `FortniteClient-Win64-Shipping.exe` or its file. Leave the launch target and arguments blank to use the Epic link automatically. |
 
-The application does not bundle the games, inject into them or modify their files. It uses Windows process queries and affinity/priority operations; it does not read or modify game memory.
+### Fortnite and Windows CPU Sets
+
+Save the selected CPUs in the Fortnite profile and enable monitoring. NUMA Control applies those CPUs using **Windows CPU Sets**. **CPU Sets configured** confirms the default selection for the game process. Threads with their own selections can behave differently, and the game's hard affinity mask may still show all CPUs in Task Manager. See [Microsoft's explanation of CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets).
+
+High priority is a separate request. If **Review needed** confirms CPU Sets and reports that Windows denied priority, the CPU selection has been saved for that running process. To request only the CPU selection, turn off **High game process priority** in the profile options. If Epic launch fails, use a Fortnite shortcut created by Epic or start the game from the client.
 
 ## Choosing cores
 
@@ -114,7 +122,11 @@ The numbers on the CPU map are Windows **logical processor numbers**, not a prom
 
 You can adjust any preset manually. Empty masks and incompatible masks are rejected. Existing saved masks are not silently replaced by a new preset. On supported hybrid CPUs, efficiency classes come from Windows rather than assumed P/E labels.
 
-Pausing, exiting, deleting a profile or turning monitoring off leaves the current game's already assigned mask in place until the process exits. To broaden it while the game is running, explicitly apply **All CPUs**. Windows, drivers and other processes are not pinned to the excluded cores.
+![CPU map with a changed selection and the Save affinity button](docs/screenshots/en-cpu-selection-standard.png)
+
+For example, if Windows displays eight two-thread cores in order, **Without edge cores** leaves logical CPUs 2–13 selected. Check the groups on your own CPU map before applying the same selection. The hexadecimal value shows which CPU tiles are selected.
+
+Pausing, exiting, deleting a profile or turning monitoring off leaves the running game's existing CPU assignment in place. To broaden it while the game is running, apply **All CPUs** with monitoring enabled. The controller chooses its own cores based on the games' hard affinity masks, including when a Fortnite profile uses CPU Sets.
 
 ## Language, tray and diagnostics
 
@@ -129,6 +141,8 @@ Self-diagnostics shows process resources and responsiveness. CPU use expressed a
 ![Self-diagnostics with real collected metrics, standard theme](docs/screenshots/en-diagnostics-standard.png)
 
 *The memory trend appears after about a minute. A zero CPU reading while idle is normal.*
+
+Open **Event log → Refresh** to see the latest operations. For a process access error, find the game by name or PID and read the operation beside it. A CPU Sets confirmation and a priority error can appear together. Copy only the relevant lines if you need help.
 
 ## Themes
 
@@ -162,7 +176,7 @@ The normal data directory is **`data` beside the EXE**. If that location is not 
 | `bug-reports/` | Manual and crash diagnostic reports |
 | `legacy-backup/` | Backed-up known shortcuts during migration, if applicable |
 
-Back up the whole data folder while the app is closed, or export profiles from Settings. Imports are validated and require confirmation; monitoring pauses so you can review the resulting rules. Exports include local executable paths and launch arguments, so do not upload a real export publicly without sanitizing it.
+To move profiles to another PC, use **Settings → Export profiles** on the old PC. Use **Import profiles** on the new PC, review each EXE path and CPU selection, then resume monitoring. For a full backup on the same PC, close NUMA Control through the tray and copy its data folder. Exports include local executable paths and launch arguments, so review them before sharing.
 
 Profiles, logs and reports stay on your computer and are not sent automatically. Review reports and exports before sharing: they may contain local paths and process information.
 
