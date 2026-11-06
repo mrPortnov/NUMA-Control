@@ -1,5 +1,10 @@
 #requires -Version 5.1
-param([Parameter(Mandatory=$true)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,[switch]$WithInstaller)
+param(
+    [Parameter(Mandatory=$true)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
+    [switch]$WithInstaller,
+    [switch]$ScanWithDefender,
+    [switch]$SmokeTest
+)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $root
@@ -8,11 +13,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Commit the reviewed source before building a release.' }
     $status = @(& git status --porcelain)
     if ($LASTEXITCODE -ne 0 -or $status.Count -gt 0) { throw 'The tracked source and visible untracked files must be clean.' }
-    & (Join-Path $PSScriptRoot 'Test-RepositorySafety.ps1')
-    $releaseRoot = Join-Path $root ('output\releases\v' + $Version)
-    if (Test-Path -LiteralPath $releaseRoot) { throw 'Release directory already exists. Inspect it; do not silently replace a release.' }
+    & (Join-Path $PSScriptRoot 'Test-RepositorySafety.ps1') -History
+    $output = Join-Path $root ('output\releases\v' + $Version)
+    if (Test-Path -LiteralPath $output) { throw 'Release directory already exists. Inspect it; do not silently replace a release.' }
+    if ($WithInstaller) {
+        $scanner = Join-Path $root '.tools\gitleaks\gitleaks.exe'
+        if (-not (Test-Path -LiteralPath $scanner -PathType Leaf)) { throw 'Gitleaks is required for release verification.' }
+        & $scanner git --no-banner --redact --log-opts='--all' .
+        if ($LASTEXITCODE -ne 0) { throw 'History secret scan failed.' }
+    }
     $workspace = Join-Path $root ('tmp\r' + [Guid]::NewGuid().ToString('N').Substring(0,8))
+    $releaseRoot = Join-Path $workspace 'release'
     [void](New-Item -ItemType Directory -Path $workspace -Force)
+    Write-Host ('Isolated build and checks: ' + $workspace)
     $snapshotZip = Join-Path $workspace 'source.zip'
     & git archive --format=zip ('--output=' + $snapshotZip) HEAD
     if ($LASTEXITCODE -ne 0) { throw 'Cannot export the committed source.' }
@@ -63,7 +76,40 @@ try {
     $distributionHashes = @($distributions | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + ' *' + $_.Name })
     [IO.File]::WriteAllLines((Join-Path $releaseRoot 'SHA256SUMS.txt'), $distributionHashes, [Text.Encoding]::ASCII)
     [IO.File]::WriteAllLines((Join-Path $releaseRoot 'SOURCE.txt'), $sourceRecord, [Text.Encoding]::ASCII)
-    Write-Host ('Verified release bundle: ' + $releaseRoot)
+    if ($WithInstaller) {
+        & $scanner dir --no-banner --redact $payload
+        if ($LASTEXITCODE -ne 0) { throw 'Portable payload secret scan failed.' }
+        $tests = Join-Path $project 'tests'
+        & (Join-Path $tests 'Run-Tests.ps1') -SkipBuild
+        $result = Get-Content -LiteralPath (Join-Path $tests 'artifacts\latest-results.json') -Raw | ConvertFrom-Json
+        if ($result.Passed -le 0 -or $result.Version -ne ($Version + '.0') -or $result.ReleaseSha256 -ne (Get-FileHash -LiteralPath $exe).Hash) {
+            throw 'Application test results do not match the packaged executable.'
+        }
+        & (Join-Path $tests 'Run-Resilience.ps1') -SoakSeconds 120
+        & (Join-Path $tests 'Stress-Test.ps1') -Seconds 10
+        & (Join-Path $tests 'Audit-Themes.ps1') -Seconds 10 -Switches 32 -SteadySeconds 120
+        $baseName = 'NUMA-Control-' + $Version + '-setup-x64'
+        $msi = Join-Path $releaseRoot ($baseName + '.msi')
+        $setup = Join-Path $releaseRoot ($baseName + '.exe')
+        & (Join-Path $tests 'Test-Installer.ps1') -MsiPath $msi
+        & (Join-Path $tests 'Test-Bootstrapper.ps1') -SetupPath $setup -MsiPath $msi
+    }
+    if ($SmokeTest) { & (Join-Path $project 'tests\Check-Launch.ps1') -MeasureSeconds 15 }
+    if ($ScanWithDefender) {
+        $defender = Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" -File |
+            Sort-Object { [version]($_.Directory.Name -split '-')[0] } -Descending | Select-Object -First 1
+        if (-not $defender) { throw 'Microsoft Defender command line scanner is unavailable.' }
+        & $defender.FullName -Scan -ScanType 3 -File $releaseRoot -DisableRemediation
+        if ($LASTEXITCODE -ne 0) { throw 'Microsoft Defender scan failed or detected a threat.' }
+    }
+    foreach ($file in $distributions) {
+        $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + ' *' + $file.Name
+        if ($hash -cnotin $distributionHashes) { throw 'A distribution changed after the initial checksum.' }
+    }
+    [void](New-Item -ItemType Directory -Path $output)
+    foreach ($name in @($distributions.Name) + @('SHA256SUMS.txt','SOURCE.txt')) {
+        Copy-Item -LiteralPath (Join-Path $releaseRoot $name) -Destination $output
+    }
+    Write-Host ('Verified release bundle: ' + $output)
     Write-Host ('Source commit: ' + $commit)
-    Write-Host 'This command builds and verifies the archive. It does not run the full test suite, scan with antivirus, sign, tag, push or publish.'
 } finally { Pop-Location }

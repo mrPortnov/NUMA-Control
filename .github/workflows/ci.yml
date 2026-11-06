@@ -1,19 +1,26 @@
-name: Windows build and repository safety
+name: Windows verification
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
-    name: Source safety and Windows build
+    name: Repository safety and Windows tests
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
+    env:
+      VERIFY_RELEASE: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -22,19 +29,52 @@ jobs:
           persist-credentials: false
       - name: Inspect committed files
         shell: powershell
-        run: ./scripts/Test-RepositorySafety.ps1
+        run: ./scripts/Test-RepositorySafety.ps1 -History
       - name: Scan Git history with Gitleaks
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $archive = Join-Path $env:RUNNER_TEMP 'gitleaks.zip'
-          $scannerDirectory = Join-Path $env:RUNNER_TEMP 'gitleaks'
+          $scannerDirectory = Join-Path $env:GITHUB_WORKSPACE '.tools/gitleaks'
           Invoke-WebRequest -Uri 'https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_windows_x64.zip' -OutFile $archive
           $expected = 'd29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e'
           if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected) { throw 'Gitleaks archive checksum mismatch.' }
           Expand-Archive -LiteralPath $archive -DestinationPath $scannerDirectory
           & (Join-Path $scannerDirectory 'gitleaks.exe') git --no-banner --redact --log-opts='--all' .
           if ($LASTEXITCODE -ne 0) { throw 'History secret scan failed.' }
-      - name: Compile current NUMA Control
+      - name: Run application and interface tests
+        if: env.VERIFY_RELEASE != 'true'
         shell: powershell
-        run: ./NumaControl/Build.ps1
+        run: ./NumaControl/tests/Run-Tests.ps1
+      - name: Get pinned WiX tools
+        if: env.VERIFY_RELEASE == 'true'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'wix314-binaries.zip'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip' -OutFile $archive
+          $expected = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected) { throw 'WiX archive checksum mismatch.' }
+          Expand-Archive -LiteralPath $archive -DestinationPath ./NumaControl/.tools/wix-3.14.1
+      - name: Build and verify release distributions
+        if: env.VERIFY_RELEASE == 'true'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assembly = Get-Content -LiteralPath ./NumaControl/src/AssemblyInfo.cs -Raw
+          if ($assembly -notmatch 'AssemblyFileVersion\("(\d+\.\d+\.\d+)\.0"\)') { throw 'Missing release version.' }
+          $version = $Matches[1]
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            if ($env:GITHUB_REF_NAME -cne "v$version") { throw 'The tag does not match the application version.' }
+            git merge-base --is-ancestor HEAD refs/remotes/origin/main
+            if ($LASTEXITCODE -ne 0) { throw 'Release tags must point to a commit in main.' }
+          }
+          ./scripts/New-ReleaseBundle.ps1 -Version $version -WithInstaller -SmokeTest
+      - name: Keep verified distributions for release review
+        if: env.VERIFY_RELEASE == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-distributions
+          path: output/releases/v*/
+          if-no-files-found: error
+          retention-days: 14
