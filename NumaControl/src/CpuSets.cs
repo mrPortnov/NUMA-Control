@@ -12,6 +12,11 @@ namespace NumaControl
         internal const uint SetLimited = 0x2000;
         private const int InsufficientBuffer = 122;
 
+        internal static bool IsUsedForProcess(string process)
+        {
+            return string.Equals(process, "FortniteClient-Win64-Shipping", StringComparison.OrdinalIgnoreCase);
+        }
+
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool GetSystemCpuSetInformation(IntPtr buffer, uint length, out uint required, SafeProcessHandle process, uint flags);
 

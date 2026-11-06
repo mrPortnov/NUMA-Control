@@ -223,11 +223,25 @@ namespace NumaControl
                     Press(editor, "BrowseGameExe");
                     Check(Control<TextBox>(editor, "GamePathInput").Text == gamePath &&
                         Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(client) &&
-                        Control<TextBox>(editor, "LaunchTargetInput").Text == "",
-                        "the normal game editor leaves the Fortnite launch target automatic");
-                    Press(editor, "CancelProfile");
+                        Control<TextBox>(editor, "LaunchTargetInput").Text == gamePath,
+                        "the normal game editor uses the EXE as the default launch target for Fortnite");
+                    const string epicUri = "com.epicgames.launcher://apps/Example?action=launch";
+                    File.WriteAllText(launcherLink, "[InternetShortcut]\r\nURL=" + epicUri + "\r\n");
+                    interaction.OpenPaths.Enqueue(launcherLink); Press(editor, "BrowseLauncherShortcut");
+                    Check(Control<TextBox>(editor, "GamePathInput").Text == gamePath &&
+                        Control<TextBox>(editor, "LaunchTargetInput").Text == epicUri,
+                        "Fortnite uses the standard shortcut picker without changing the monitored EXE");
+                    Control<TextBox>(editor, "GameNameInput").Text = "CPU Sets fixture";
+                    Press(editor, "SaveProfile");
                 });
                 Press(w, "AddGame");
+                var cpuSetsTip = (ToolTip)Control<Border>(w, "CpuModeInfo").ToolTip;
+                Check(controller.Config.Games.Count == 4 && (string)cpuSetsTip.DataContext == L10n.T("Режим профиля · CPU Sets"),
+                    "selecting the Fortnite profile shows CPU Sets as its assignment mode");
+                interaction.Editors.Enqueue(editor => { interaction.Answers.Enqueue(MessageBoxResult.OK); Press(editor, "DeleteProfile"); });
+                Press(w, "EditGame");
+                Check(controller.Config.Games.Count == 3 && (string)cpuSetsTip.DataContext == L10n.T("Режим профиля · жёсткая маска"),
+                    "switching back to an ordinary profile restores the hard affinity explanation");
                 interaction.Editors.Enqueue(editor => { interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe"); Check(Control<TextBox>(editor, "GamePathInput").Text == fixture, "browse game fills exact path"); Check(Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(fixture), "browse game derives process name"); Control<TextBox>(editor, "GameNameInput").Text = "Тест игрового профиля"; interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseLaunchExe"); Press(editor, "SaveProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 4 && Control<TextBlock>(w, "SelectedName").Text == "Тест игрового профиля", "add via EXE creates and selects persisted profile");
                 string fixtureId = controller.Config.Games.Last().Id;

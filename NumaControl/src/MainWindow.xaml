@@ -14,7 +14,7 @@
         <DockPanel Grid.Row="2">
           <Button x:Name="AddGame" DockPanel.Dock="Bottom" Content="＋  Добавить игру" Margin="0,12,0,20"/>
           <ListBox x:Name="GameList">
-            <ListBox.ItemTemplate><DataTemplate><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="36" CornerRadius="7" Background="#32303D" VerticalAlignment="Center"><Grid><Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality"/><TextBlock Text="{Binding Badge}" Foreground="{Binding Brush}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Icon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></Grid></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/><TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="11" Margin="0,5,0,0"/></StackPanel></Grid></DataTemplate></ListBox.ItemTemplate>
+            <ListBox.ItemTemplate><DataTemplate><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="36" CornerRadius="7" Background="#32303D" VerticalAlignment="Center"><Grid><Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality"/><TextBlock Text="{Binding Badge}" Foreground="{Binding Brush}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Icon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></Grid></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/><TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="11" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}"/></StackPanel></Grid></DataTemplate></ListBox.ItemTemplate>
           </ListBox>
         </DockPanel>
         <StackPanel Grid.Row="3">
@@ -49,7 +49,47 @@
             </Border>
             <Border Style="{StaticResource Card}">
               <StackPanel>
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Margin="0,0,12,0"><ui:BaselinePanel UseLayoutRounding="False" SnapsToDevicePixels="False"><TextBlock x:Name="CpuMapTitle" Text="КАРТА ПРОЦЕССОРА" Style="{StaticResource SectionHeading}"/><TextBlock x:Name="MaskLabel" FontFamily="Consolas" FontSize="15" FontWeight="{Binding FontWeight, ElementName=CpuMapTitle}" Foreground="#B6AFFF" Margin="12,0,0,0"/></ui:BaselinePanel><TextBlock x:Name="ProcessorName" Foreground="#949DB1" FontSize="11" Margin="0,7,0,0" TextTrimming="CharacterEllipsis"/></StackPanel></Grid>
+                <StackPanel Margin="0,0,12,0">
+                  <StackPanel Orientation="Horizontal">
+                    <ui:BaselinePanel UseLayoutRounding="False" SnapsToDevicePixels="False" VerticalAlignment="Center">
+                      <TextBlock x:Name="CpuMapTitle" Text="КАРТА ПРОЦЕССОРА" Style="{StaticResource SectionHeading}"/>
+                      <TextBlock x:Name="MaskLabel" FontFamily="Consolas" FontSize="15" FontWeight="{Binding FontWeight, ElementName=CpuMapTitle}" Foreground="#B6AFFF" Margin="12,0,0,0"/>
+                    </ui:BaselinePanel>
+                    <Border x:Name="CpuModeInfo" Width="22" Height="22" CornerRadius="11" Margin="10,0,0,0"
+                            Background="#252A37" BorderThickness="1" Focusable="True" Cursor="Help"
+                            ToolTipService.ShowDuration="24000" ToolTipService.ShowsToolTipOnKeyboardFocus="True">
+                      <Border.Style>
+                        <Style TargetType="Border">
+                          <Setter Property="BorderBrush" Value="#343A4B"/>
+                          <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="#B6AFFF"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="#B6AFFF"/></Trigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Border.Style>
+                      <Border.ToolTip>
+                        <ToolTip Placement="Bottom" VerticalOffset="6" HasDropShadow="True" FontFamily="Segoe UI">
+                          <ToolTip.Template>
+                            <ControlTemplate TargetType="ToolTip">
+                              <Border Background="#191C25" BorderBrush="#B6AFFF" BorderThickness="1" CornerRadius="10" Padding="14">
+                                <ContentPresenter/>
+                              </Border>
+                            </ControlTemplate>
+                          </ToolTip.Template>
+                          <StackPanel Width="300">
+                            <TextBlock Text="{Binding}" Foreground="#B6AFFF" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"/>
+                            <TextBlock Text="Жёсткая маска ограничивает, на каких ЦП процесс может выполняться."
+                                       Foreground="#EEF0F8" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <TextBlock Text="CPU Sets задаёт набор ЦП по умолчанию для потоков без собственного назначения. В Диспетчере задач при этом могут отображаться все ЦП."
+                                       Foreground="#EEF0F8" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                          </StackPanel>
+                        </ToolTip>
+                      </Border.ToolTip>
+                      <TextBlock Text="i" Foreground="#B6AFFF" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock x:Name="ProcessorName" Foreground="#949DB1" FontSize="11" Margin="0,7,0,0" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
                 <WrapPanel Margin="0,17,0,12"><Button x:Name="PresetAll" Content="Все ЦП" Padding="10,7" Margin="0,0,7,7"/><Button x:Name="PresetEdges" Content="Без крайних ядер" Padding="10,7" Margin="0,0,7,7" ToolTip="Исключить первое и последнее физическое ядро со всеми SMT-потоками"/><Button x:Name="PresetPhysical" Content="По главному потоку на ядро" Padding="10,7" Margin="0,0,0,7" ToolTip="Первый логический поток каждого физического ядра по нумерации Windows. Производительность SMT-соседей не ранжируется."/></WrapPanel>
                 <WrapPanel x:Name="CpuMap" Margin="-5,0,0,0"/>
                 <TextBlock Text="Нажимайте на потоки, чтобы собрать свою привязку для игры. Можно выбрать любую комбинацию ядер и потоков." Foreground="#8993A9" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"/>
@@ -64,7 +104,7 @@
       <ScrollViewer x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed"><StackPanel x:Name="SettingsBody" Margin="0,0,8,12"/></ScrollViewer>
       <ScrollViewer x:Name="DiagnosticsView" Grid.Row="1" Visibility="Collapsed"><StackPanel x:Name="DiagnosticsBody" Margin="0,0,8,12"/></ScrollViewer>
       <Grid x:Name="LogView" Grid.Row="1" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><DockPanel Margin="0,0,0,16"><Button x:Name="RefreshLog" DockPanel.Dock="Right" Content="Обновить"/><TextBlock Text="Последние 250 записей · новые сверху" Foreground="#949DB1" VerticalAlignment="Center"/></DockPanel><TextBox x:Name="LogText" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"/></Grid>
-      <Grid Grid.Row="2" Margin="0,12,0,0"><TextBlock x:Name="Toast" Text="" Foreground="#7F899D" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,0,35,0"/><TextBlock Text="v1.7.1" HorizontalAlignment="Right" Foreground="#606B80" FontSize="10"/></Grid>
+      <Grid Grid.Row="2" Margin="0,12,0,0"><TextBlock x:Name="Toast" Text="" Foreground="#7F899D" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,0,35,0"/><TextBlock Text="v1.7.2" HorizontalAlignment="Right" Foreground="#606B80" FontSize="10"/></Grid>
     </Grid>
   </Grid>
 </Window>

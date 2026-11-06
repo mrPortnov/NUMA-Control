@@ -385,6 +385,13 @@ namespace NumaControl
             Find<TextBlock>("SelectedGameBadge").Visibility = icon == null ? Visibility.Visible : Visibility.Collapsed;
             Find<TextBlock>("SelectedProcess").Text = selected.ProcessName + ".exe" + (string.IsNullOrWhiteSpace(selected.ExePath) ? L10n.T(" · по имени процесса") : L10n.T(" · точный путь EXE"));
             Find<TextBlock>("SelectedProcess").ToolTip = selected.ExePath;
+            Border cpuModeInfo = Find<Border>("CpuModeInfo");
+            var cpuModeTip = (ToolTip)cpuModeInfo.ToolTip;
+            string cpuMode = L10n.T(CpuSets.IsUsedForProcess(selected.ProcessName) ? "Режим профиля · CPU Sets" : "Режим профиля · жёсткая маска");
+            cpuModeTip.DataContext = cpuMode;
+            System.Windows.Automation.AutomationProperties.SetName(cpuModeInfo, cpuMode);
+            System.Windows.Automation.AutomationProperties.SetHelpText(cpuModeInfo, L10n.T("Жёсткая маска ограничивает, на каких ЦП процесс может выполняться.") + " " +
+                L10n.T("CPU Sets задаёт набор ЦП по умолчанию для потоков без собственного назначения. В Диспетчере задач при этом могут отображаться все ЦП."));
             Find<CheckBox>("EnabledToggle").IsChecked = selected.Enabled;
             WrapPanel map = Find<WrapPanel>("CpuMap"); map.Children.Clear(); cpuButtons.Clear();
             bool hybrid = Topology.Cores.Select(c => c.Efficiency).Distinct().Count() > 1;

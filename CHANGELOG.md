@@ -4,11 +4,11 @@
 
 Downloads and publication dates are available in [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases).
 
-## 1.7.1 — launcher integration
+## 1.7.2 — launcher integration
 
 - Launch games through Epic Games, Battle.net and Ubisoft Connect using supported links or game shortcuts.
-- Find the Epic launch link automatically for Fortnite profiles with the default launch target.
 - Apply the selected CPUs to Fortnite through Windows CPU Sets. Confirm the selection separately from the priority result.
+- See the current profile's CPU assignment mode and the difference between CPU Sets and hard affinity next to the CPU map.
 - Expand the English and Russian walkthroughs with screenshots of the profile editor and CPU selection.
 - Update earlier installations to the current application and show a single entry in Windows Installed apps when installed with setup.exe.
 - See which operation Windows denied and whether the requested CPU mask was confirmed.

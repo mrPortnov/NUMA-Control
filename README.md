@@ -43,18 +43,18 @@ This is a native Windows C# / WPF application. Linux, macOS and ARM64 builds are
 
 ## Install
 
-Get files from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases). Use one distribution at a time.
+Get files from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases). The filename contains the release version in place of `VERSION`. Use one distribution at a time.
 
 | Package | Best for | How to start |
 |---|---|---|
-| `NUMA-Control-1.7.1-setup-x64.exe` | Recommended setup; downloads the official Microsoft .NET Framework 4.8 prerequisite only when missing | Run setup, then complete the application wizard |
-| `NUMA-Control-1.7.1-setup-x64.msi` | A regular per-user installation and Windows uninstall/repair support | Run the installer, then launch NUMA Control from Start |
-| `NUMA-Control-1.7.1-portable-x64.zip` | Running from an extracted folder without installation registration | Extract the entire ZIP to a writable folder and run `Open-NUMA.cmd` or `NUMA-Control.exe` |
+| `NUMA-Control-VERSION-setup-x64.exe` | Recommended setup; downloads the official Microsoft .NET Framework 4.8 prerequisite only when missing | Run setup, then complete the application wizard |
+| `NUMA-Control-VERSION-setup-x64.msi` | A regular per-user installation and Windows uninstall/repair support | Run the installer, then launch NUMA Control from Start |
+| `NUMA-Control-VERSION-portable-x64.zip` | Running from an extracted folder without installation registration | Extract the entire ZIP to a writable folder and run `Open-NUMA.cmd` or `NUMA-Control.exe` |
 | `SHA256SUMS.txt` | Verifying the downloaded distributions | Compare its hash with `Get-FileHash` |
 
 ### Recommended setup and .NET prerequisite
 
-Run `NUMA-Control-1.7.1-setup-x64.exe`. It detects .NET Framework 4.8 or later and skips the download when it is present. Otherwise it downloads the official Microsoft web installer and installs the runtime before the application MSI. Internet access, administrator approval and sometimes a restart are required for the system runtime. Uninstalling NUMA Control does not remove shared .NET.
+Run `NUMA-Control-VERSION-setup-x64.exe`. It detects .NET Framework 4.8 or later and skips the download when it is present. Otherwise it downloads the official Microsoft web installer and installs the runtime before the application MSI. Internet access, administrator approval and sometimes a restart are required for the system runtime. Uninstalling NUMA Control does not remove shared .NET.
 
 To update an earlier setup.exe installation, exit NUMA Control from the tray and run the newer setup.exe. The update preserves your profiles and leaves one NUMA Control entry in Windows Installed apps. If you installed the standalone MSI, use the newer MSI to update it.
 
@@ -81,9 +81,7 @@ Keep the application, configuration, launcher and documentation from the ZIP tog
 ### Verify a download
 
 ```powershell
-Get-FileHash .\NUMA-Control-1.7.1-setup-x64.exe -Algorithm SHA256
-Get-FileHash .\NUMA-Control-1.7.1-setup-x64.msi -Algorithm SHA256
-Get-FileHash .\NUMA-Control-1.7.1-portable-x64.zip -Algorithm SHA256
+Get-FileHash -Path .\NUMA-Control-* -Algorithm SHA256
 ```
 
 Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also contains `SHA256.txt` for its individual files. Checksums verify integrity; the current application EXE, setup EXE and MSI are **not signed with a trusted code-signing certificate**.
@@ -104,13 +102,14 @@ Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also
 | Direct Windows EXE | Select the game EXE. Use the optional arguments field for that EXE. |
 | Steam | Match the game EXE and enter its Steam link as the launch target. Examples are `cs2.exe` with `steam://rungameid/730` and `dota2.exe` with `steam://rungameid/570`. |
 | Epic Games, Battle.net or Ubisoft Connect | Select the game EXE, then choose **Use game shortcut** and import the shortcut created by the client. If it opens the game page, press **Play** in the client. |
-| Fortnite | Select the running `FortniteClient-Win64-Shipping.exe` or its file. Leave the launch target and arguments blank to use the Epic link automatically. |
 
-### Fortnite and Windows CPU Sets
+For Fortnite, choose `FortniteClient-Win64-Shipping.exe` as the game process and import the shortcut created by Epic if you want to use **Launch game**. You can also start the game directly from Epic. [Create an Epic Games shortcut](https://www.epicgames.com/help/c-32735058/c-36403860/a20183292)
 
-Save the selected CPUs in the Fortnite profile and enable monitoring. NUMA Control applies those CPUs using **Windows CPU Sets**. **CPU Sets configured** confirms the default selection for the game process. Threads with their own selections can behave differently, and the game's hard affinity mask may still show all CPUs in Task Manager. See [Microsoft's explanation of CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets).
+### CPU Sets and hard affinity
 
-High priority is a separate request. If **Review needed** confirms CPU Sets and reports that Windows denied priority, the CPU selection has been saved for that running process. To request only the CPU selection, turn off **High game process priority** in the profile options. If Epic launch fails, use a Fortnite shortcut created by Epic or start the game from the client.
+Hover over **ⓘ** beside the CPU map in **Library** to see the profile's mode. Hard affinity limits the CPUs a process can run on. For Fortnite, NUMA Control uses **Windows CPU Sets** to select default CPUs for threads without their own assignment. Task Manager may still show all CPUs in the game's hard affinity mask. A restrictive affinity mask takes precedence if it conflicts with CPU Sets. [Microsoft's CPU Sets documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets)
+
+**Rule applied** confirms successful application. The game card identifies CPU Sets when used. If **Review needed** confirms CPU Sets and reports that Windows denied High priority, the CPU selection was applied and the priority request failed. To request only the CPU selection, turn off **High game process priority** in the profile options.
 
 ## Choosing cores
 

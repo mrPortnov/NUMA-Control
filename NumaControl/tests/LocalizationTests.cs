@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -61,6 +62,7 @@ namespace NumaControl
                         if (language == "en") Check(!Descendants(window).OfType<TextBlock>().Where(t => t.IsVisible).Any(t => Regex.IsMatch(t.Text ?? "", "[А-Яа-яЁё]")), "English library contains no untranslated labels / " + theme);
                         string libraryName = theme == "standard" ? "library-standard" : theme == "win11-light" ? "library-light" : theme == "win11-dark" ? "library-dark" : "library-bios";
                         Capture(window, "readme-" + language + "-" + libraryName);
+                        CpuModeAndStatusChecks(window, language + " / " + theme);
                         if (theme == "standard")
                         {
                             ToggleButton tile = Descendants(Control<WrapPanel>(window, "CpuMap")).OfType<ToggleButton>().First();
@@ -100,7 +102,8 @@ namespace NumaControl
                             {
                                 Pump();
                                 ResourceSample sample = controller.Health.Current;
-                                return sample != null && sample.CpuIntervalSeconds > 0 && sample.ElapsedSeconds >= 65 && controller.Health.History.Any(earlier => earlier.ElapsedSeconds <= sample.ElapsedSeconds - 60);
+                                return sample != null && sample.CpuIntervalSeconds > 0 && sample.ElapsedSeconds >= 65 && sample.CpuOneCorePercent < 30 &&
+                                    controller.Health.History.Any(earlier => earlier.ElapsedSeconds <= sample.ElapsedSeconds - 60);
                             }, 90000), "README diagnostics waits for actual CPU samples and the 60-second memory trend / " + language);
                             Press(window, "RefreshDiagnostics");
                             foreach (string metric in new[] { "Memory", "Cpu", "Handles", "Heartbeat" })
@@ -163,6 +166,46 @@ namespace NumaControl
                 Check(selector.SelectedIndex == selected, "dropdown navigation preserves the saved selection without confirmation / " + language + " / " + theme + " / " + name);
                 Check(((SolidColorBrush)selector.Foreground).Color == (Color)ColorConverter.ConvertFromString(Themes.Map("#EEF0F8")), "closed dropdown restores normal text color / " + language + " / " + theme + " / " + name);
             }
+        }
+        private static void CpuModeAndStatusChecks(Window window, string context)
+        {
+            var icon = Control<Border>(window, "CpuModeInfo");
+            var tip = (ToolTip)icon.ToolTip;
+            var iconText = (TextBlock)icon.Child;
+            Check(icon.IsVisible && icon.Focusable && ToolTipService.GetShowsToolTipOnKeyboardFocus(icon) == true,
+                "CPU mode help is visible and keyboard accessible / " + context);
+            Check(Contrast(((SolidColorBrush)iconText.Foreground).Color.ToString(), ((SolidColorBrush)icon.Background).Color.ToString()) >= 4.5,
+                "CPU mode information glyph has readable contrast / " + context);
+            tip.PlacementTarget = icon;
+            tip.IsOpen = true;
+            try
+            {
+                Pump();
+                var text = ((StackPanel)tip.Content).Children.OfType<TextBlock>().ToArray();
+                Check(text[0].Text == L10n.T("Режим профиля · жёсткая маска") && text[1].Text == L10n.T("Жёсткая маска ограничивает, на каких ЦП процесс может выполняться.") &&
+                    text[2].Text == L10n.T("CPU Sets задаёт набор ЦП по умолчанию для потоков без собственного назначения. В Диспетчере задач при этом могут отображаться все ЦП."),
+                    "CPU mode tooltip shows the profile mode and both localized explanations / " + context);
+                Check(text.All(line => line.ActualWidth > 0 && line.ActualHeight > 0 &&
+                    Contrast(((SolidColorBrush)line.Foreground).Color.ToString(), Themes.Map("#191C25")) >= 4.5),
+                    "both CPU mode explanations render with readable contrast / " + context);
+            }
+            finally { tip.IsOpen = false; tip.ClearValue(ToolTip.PlacementTargetProperty); }
+
+            var list = Control<ListBox>(window, "GameList");
+            var row = (GameRow)list.SelectedItem;
+            string previous = row.Status;
+            row.Update(new GameStatus { State = L10n.T("Правило применено"), Running = 1, Applied = 1 });
+            try
+            {
+                list.UpdateLayout();
+                var container = (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(list.SelectedIndex);
+                var label = Descendants(container).OfType<TextBlock>().Single(value => value.Text == row.Status);
+                var typeface = new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch);
+                var measured = new FormattedText(label.Text, CultureInfo.CurrentUICulture, label.FlowDirection, typeface, label.FontSize,
+                    label.Foreground, VisualTreeHelper.GetDpi(label).PixelsPerDip);
+                Check(measured.Width <= label.ActualWidth + 1, "the shared applied status fits the profile column / " + context);
+            }
+            finally { row.Update(new GameStatus { State = previous }); }
         }
         private static void ListAndTrayContrastChecks(Window window, Forms.ContextMenuStrip menu, string language, string theme)
         {

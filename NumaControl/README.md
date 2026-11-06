@@ -1,4 +1,4 @@
-# NUMA Control 1.7.1 — quick reference
+# NUMA Control 1.7.2 — quick reference
 
 **[English](README.md) · [Русский](README.ru.md)**
 
@@ -12,9 +12,9 @@ NUMA Control uses documented Windows APIs to query processes and change their CP
 
 Requires Windows 10/11 x64, .NET Framework 4.8 and one processor group with 1–64 logical CPUs.
 
-- **Recommended setup:** `NUMA-Control-1.7.1-setup-x64.exe` detects .NET Framework 4.8 or later. If missing, it downloads the official Microsoft prerequisite and installs it before the application. The runtime may need internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped; application removal does not remove shared .NET.
-- **MSI:** `NUMA-Control-1.7.1-setup-x64.msi` installs for the current user, normally under `%LOCALAPPDATA%\Programs\NUMA Control`. It requires .NET already installed. Repair, upgrade and uninstall use Windows Installer and preserve user-generated `data`.
-- **Portable:** extract `NUMA-Control-1.7.1-portable-x64.zip` completely to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE and run `Open-NUMA.cmd` or `NUMA-Control.exe`.
+- **Recommended setup:** `NUMA-Control-1.7.2-setup-x64.exe` detects .NET Framework 4.8 or later. If missing, it downloads the official Microsoft prerequisite and installs it before the application. The runtime may need internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped; application removal does not remove shared .NET.
+- **MSI:** `NUMA-Control-1.7.2-setup-x64.msi` installs for the current user, normally under `%LOCALAPPDATA%\Programs\NUMA Control`. It requires .NET already installed. Repair, upgrade and uninstall use Windows Installer and preserve user-generated `data`.
+- **Portable:** extract `NUMA-Control-1.7.2-portable-x64.zip` completely to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE and run `Open-NUMA.cmd` or `NUMA-Control.exe`.
 
 The app and distribution packages currently have no trusted code-signing signature. Compare a download's SHA-256 with `SHA256SUMS.txt` from the same release. Do not disable Windows protection to bypass an organizational policy.
 
@@ -32,7 +32,7 @@ Open **Settings → Interface language → Русский / English**. On the in
 
 Examples: `cs2.exe`, `dota2.exe`, `Game.exe`. Steam launch targets include `steam://rungameid/730` and `steam://rungameid/570`; `astrumplay://play/0.1177` is another supported target. The game's matching EXE and its launch target are separate fields. Arbitrary shell commands are rejected.
 
-For Epic Games, Battle.net and Ubisoft Connect, select the game EXE and import its launcher shortcut with **Use game shortcut**. For Fortnite, add `FortniteClient-Win64-Shipping.exe` and leave the launch target and arguments blank to use the Epic link automatically. Save the CPU selection. **CPU Sets configured** confirms the game's default CPU selection. If Windows denies High priority, the status shows that result separately. See the [Fortnite walkthrough](USER-GUIDE.md#configure-fortnite).
+For Epic Games, Battle.net and Ubisoft Connect, select the game EXE and import its launcher shortcut with **Use game shortcut**. This also applies to Fortnite, whose game EXE is `FortniteClient-Win64-Shipping.exe`. Hover over **ⓘ** by the CPU map to see which CPU assignment mode the profile uses. **Rule applied** confirms successful application, and the game card shows whether CPU Sets was used. See the [Fortnite example](USER-GUIDE.md#example-fortnite).
 
 ## CPU presets
 

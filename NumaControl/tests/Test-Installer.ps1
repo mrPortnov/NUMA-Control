@@ -2,7 +2,7 @@
 param([string]$MsiPath)
 $ErrorActionPreference='Stop'
 $project=Split-Path -Parent $PSScriptRoot
-if(-not $MsiPath) { $MsiPath=Join-Path $project 'NUMA-Control-1.7.1-setup-x64.msi' }
+if(-not $MsiPath) { $MsiPath=Join-Path $project 'NUMA-Control-1.7.2-setup-x64.msi' }
 $MsiPath=[IO.Path]::GetFullPath($MsiPath)
 $isolationId=[Guid]::NewGuid().ToString('N'); $run=Join-Path $PSScriptRoot ('artifacts\installer-'+$isolationId); [void](New-Item -ItemType Directory -Path $run)
 $installFolder=Join-Path $run 'Приложение с пробелами'; $menuFolder=Join-Path $run 'Start menu'
