@@ -76,10 +76,16 @@ try {
     $distributionHashes = @($distributions | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + ' *' + $_.Name })
     [IO.File]::WriteAllLines((Join-Path $releaseRoot 'SHA256SUMS.txt'), $distributionHashes, [Text.Encoding]::ASCII)
     [IO.File]::WriteAllLines((Join-Path $releaseRoot 'SOURCE.txt'), $sourceRecord, [Text.Encoding]::ASCII)
+    if ($SmokeTest) { & (Join-Path $project 'tests\Check-Launch.ps1') -MeasureSeconds 15 }
     if ($WithInstaller) {
         & $scanner dir --no-banner --redact $payload
         if ($LASTEXITCODE -ne 0) { throw 'Portable payload secret scan failed.' }
         $tests = Join-Path $project 'tests'
+        $baseName = 'NUMA-Control-' + $Version + '-setup-x64'
+        $msi = Join-Path $releaseRoot ($baseName + '.msi')
+        $setup = Join-Path $releaseRoot ($baseName + '.exe')
+        & (Join-Path $tests 'Test-Installer.ps1') -MsiPath $msi
+        & (Join-Path $tests 'Test-Bootstrapper.ps1') -SetupPath $setup -MsiPath $msi
         & (Join-Path $tests 'Run-Tests.ps1') -SkipBuild
         $result = Get-Content -LiteralPath (Join-Path $tests 'artifacts\latest-results.json') -Raw | ConvertFrom-Json
         if ($result.Passed -le 0 -or $result.Version -ne ($Version + '.0') -or $result.ReleaseSha256 -ne (Get-FileHash -LiteralPath $exe).Hash) {
@@ -88,13 +94,7 @@ try {
         & (Join-Path $tests 'Run-Resilience.ps1') -SoakSeconds 120
         & (Join-Path $tests 'Stress-Test.ps1') -Seconds 10
         & (Join-Path $tests 'Audit-Themes.ps1') -Seconds 10 -Switches 32 -SteadySeconds 120
-        $baseName = 'NUMA-Control-' + $Version + '-setup-x64'
-        $msi = Join-Path $releaseRoot ($baseName + '.msi')
-        $setup = Join-Path $releaseRoot ($baseName + '.exe')
-        & (Join-Path $tests 'Test-Installer.ps1') -MsiPath $msi
-        & (Join-Path $tests 'Test-Bootstrapper.ps1') -SetupPath $setup -MsiPath $msi
     }
-    if ($SmokeTest) { & (Join-Path $project 'tests\Check-Launch.ps1') -MeasureSeconds 15 }
     if ($ScanWithDefender) {
         $defender = Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" -File |
             Where-Object { $_.Directory.Name -match '^\d+\.\d+\.\d+\.\d+(?:-\d+)?$' } |

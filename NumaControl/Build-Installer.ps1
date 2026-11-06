@@ -15,7 +15,7 @@ $authoring=Join-Path $PSScriptRoot 'installer\Product.wxs'
 $upgradeCode='{5B491C32-5ADB-44C9-8E40-EA269B744AA9}'
 if($IsolationId) {
     function Isolated-Guid([string]$seed) { $algorithm=[Security.Cryptography.MD5]::Create(); try { return ([Guid]::new($algorithm.ComputeHash([Text.Encoding]::UTF8.GetBytes($IsolationId+$seed)))).ToString('D').ToUpperInvariant() } finally {$algorithm.Dispose()} }
-    $isolatedSource=Get-Content -LiteralPath $authoring -Raw
+    $isolatedSource=[IO.File]::ReadAllText($authoring)
     $privateUpgrade=Isolated-Guid 'upgrade'; $upgradeCode='{'+$privateUpgrade+'}'
     $isolatedSource=$isolatedSource.Replace('5B491C32-5ADB-44C9-8E40-EA269B744AA9',$privateUpgrade).Replace('Software\NUMA Control\Installer',('Software\NUMA Control\Tests\'+$IsolationId+'\Installer'))
     $isolatedSource=[regex]::Replace($isolatedSource,'Guid="([0-9A-Fa-f-]{36})"',{param($match) 'Guid="'+(Isolated-Guid $match.Groups[1].Value)+'"'})
