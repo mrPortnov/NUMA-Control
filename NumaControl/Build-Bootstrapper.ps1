@@ -1,7 +1,9 @@
 #requires -Version 5.1
-param([string]$ProductVersion='1.7.0',[Parameter(Mandatory=$true)][string]$MsiPath,[string]$OutputPath,[string]$IsolationId,[string]$IsolationDirectory)
+param([string]$ProductVersion='1.7.1',[Parameter(Mandatory=$true)][string]$MsiPath,[string]$OutputPath,[string]$IsolationId,[string]$IsolationDirectory,[switch]$LegacyMsiEntry)
 $ErrorActionPreference='Stop'
 if($ProductVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Use a three-part release version.'}
+if($LegacyMsiEntry -and -not $IsolationId){throw 'A visible chained MSI is available only for an isolated upgrade test.'}
+$msiVisible=if($LegacyMsiEntry){'yes'}else{'no'}
 $MsiPath=[IO.Path]::GetFullPath($MsiPath)
 if(-not(Test-Path -LiteralPath $MsiPath -PathType Leaf)){throw 'Build the matching MSI first.'}
 $tools=Join-Path $PSScriptRoot '.tools\wix-3.14.1'
@@ -18,7 +20,7 @@ if($IsolationId -or $IsolationDirectory){
  $isolationDefines+=('-dIsolationDirectory='+[IO.Path]::GetFullPath($IsolationDirectory))
  $object=Join-Path $build ('bundle-test-'+$IsolationId+'.wixobj')
 }
-& (Join-Path $tools 'candle.exe') -nologo @extensions @isolationDefines ('-dBundleUpgradeCode='+$bundleUpgradeCode) ('-dProjectRoot='+$PSScriptRoot) ('-dProductVersion='+$ProductVersion) ('-dMsiPath='+$MsiPath) -out $object (Join-Path $PSScriptRoot 'installer\Bundle.wxs')
+& (Join-Path $tools 'candle.exe') -nologo @extensions @isolationDefines ('-dBundleUpgradeCode='+$bundleUpgradeCode) ('-dProjectRoot='+$PSScriptRoot) ('-dProductVersion='+$ProductVersion) ('-dMsiPath='+$MsiPath) ('-dMsiVisible='+$msiVisible) -out $object (Join-Path $PSScriptRoot 'installer\Bundle.wxs')
 if($LASTEXITCODE -ne 0){throw 'Bootstrapper authoring compilation failed.'}
 & (Join-Path $tools 'light.exe') -nologo @extensions -out $OutputPath $object
 if($LASTEXITCODE -ne 0){throw 'Bootstrapper linking failed.'}

@@ -47,14 +47,16 @@ Get files from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/relea
 
 | Package | Best for | How to start |
 |---|---|---|
-| `NUMA-Control-1.7.0-setup-x64.exe` | Recommended setup; downloads the official Microsoft .NET Framework 4.8 prerequisite only when missing | Run setup, then complete the application wizard |
-| `NUMA-Control-1.7.0-setup-x64.msi` | A regular per-user installation and Windows uninstall/repair support | Run the installer, then launch NUMA Control from Start |
-| `NUMA-Control-1.7.0-portable-x64.zip` | Running from an extracted folder without installation registration | Extract the entire ZIP to a writable folder and run `Open-NUMA.cmd` or `NUMA-Control.exe` |
+| `NUMA-Control-1.7.1-setup-x64.exe` | Recommended setup; downloads the official Microsoft .NET Framework 4.8 prerequisite only when missing | Run setup, then complete the application wizard |
+| `NUMA-Control-1.7.1-setup-x64.msi` | A regular per-user installation and Windows uninstall/repair support | Run the installer, then launch NUMA Control from Start |
+| `NUMA-Control-1.7.1-portable-x64.zip` | Running from an extracted folder without installation registration | Extract the entire ZIP to a writable folder and run `Open-NUMA.cmd` or `NUMA-Control.exe` |
 | `SHA256SUMS.txt` | Verifying the downloaded distributions | Compare its hash with `Get-FileHash` |
 
 ### Recommended setup and .NET prerequisite
 
-Run `NUMA-Control-1.7.0-setup-x64.exe`. It detects .NET Framework 4.8 or later and skips the download when it is present. Otherwise it downloads the official Microsoft web installer and installs the runtime before the application MSI. Internet access, administrator approval and sometimes a restart are required for the system runtime. Uninstalling NUMA Control does not remove shared .NET.
+Run `NUMA-Control-1.7.1-setup-x64.exe`. It detects .NET Framework 4.8 or later and skips the download when it is present. Otherwise it downloads the official Microsoft web installer and installs the runtime before the application MSI. Internet access, administrator approval and sometimes a restart are required for the system runtime. Uninstalling NUMA Control does not remove shared .NET.
+
+To update an earlier setup.exe installation, exit NUMA Control from the tray and run the newer setup.exe. The update preserves your profiles and leaves one NUMA Control entry in Windows Installed apps. If you installed the standalone MSI, use the newer MSI to update it.
 
 The separate MSI and portable ZIP require .NET Framework 4.8 to be installed already. They do not download dependencies. The application itself remains offline; network access belongs to the optional prerequisite setup.
 
@@ -79,9 +81,9 @@ Keep the application, configuration, launcher and documentation from the ZIP tog
 ### Verify a download
 
 ```powershell
-Get-FileHash .\NUMA-Control-1.7.0-setup-x64.exe -Algorithm SHA256
-Get-FileHash .\NUMA-Control-1.7.0-setup-x64.msi -Algorithm SHA256
-Get-FileHash .\NUMA-Control-1.7.0-portable-x64.zip -Algorithm SHA256
+Get-FileHash .\NUMA-Control-1.7.1-setup-x64.exe -Algorithm SHA256
+Get-FileHash .\NUMA-Control-1.7.1-setup-x64.msi -Algorithm SHA256
+Get-FileHash .\NUMA-Control-1.7.1-portable-x64.zip -Algorithm SHA256
 ```
 
 Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also contains `SHA256.txt` for its individual files. Checksums verify integrity; the current application EXE, setup EXE and MSI are **not signed with a trusted code-signing certificate**.

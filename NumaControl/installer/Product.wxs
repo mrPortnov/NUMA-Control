@@ -25,7 +25,7 @@
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="LocalAppDataFolder"><Directory Id="ProgramsFolder" Name="Programs"><Directory Id="INSTALLFOLDER" Name="NUMA Control">
         <Component Id="MainExecutable" Guid="A6C221A6-BF03-4A8E-95BE-BE0C1F8AEB48" Win64="yes">
-          <File Id="ApplicationExe" Source="$(var.ProjectRoot)\NUMA-Control.exe"/>
+          <File Id="ApplicationExe" Name="NUMA-Control.exe" Source="$(var.ApplicationExe)"/>
           <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="InstallFolder" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes"/>
           <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopFolder" Value="[DesktopFolder]" Type="string"/>
           <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="DesktopChoice" Value="[DESKTOPCHOICE]" Type="string"/>
@@ -47,10 +47,15 @@
       <Directory Id="ProgramMenuFolder"><Directory Id="APPLICATIONMENUFOLDER" Name="NUMA Control">
         <Component Id="MenuShortcuts" Guid="4C839BFA-EEBE-4E54-B30A-55D7F15248E1" Win64="yes">
           <Shortcut Id="StartMenuLaunch" Name="NUMA Control" Target="[INSTALLFOLDER]NUMA-Control.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" Description="Игровые профили CPU"/>
-          <Shortcut Id="StartMenuUninstall" Name="Удалить NUMA Control" Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]" Description="Удалить программу. Пользовательские профили сохранятся"/>
           <RemoveFolder Id="RemoveMenuFolder" On="uninstall"/>
           <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="Shortcuts" Value="1" Type="integer" KeyPath="yes"/>
           <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="MenuFolder" Value="[APPLICATIONMENUFOLDER]" Type="string"/>
+        </Component>
+        <Component Id="StandaloneUninstallShortcut" Guid="2F077EAB-D504-4616-B66A-299559425DC8" Win64="yes">
+          <Condition>NOT ARPSYSTEMCOMPONENT</Condition>
+          <Shortcut Id="StartMenuUninstall" Name="Удалить NUMA Control" Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]" Description="Удалить программу. Пользовательские профили сохранятся"/>
+          <RemoveFolder Id="RemoveStandaloneMenuFolder" On="uninstall"/>
+          <RegistryValue Root="HKCU" Key="Software\NUMA Control\Installer" Name="StandaloneUninstallShortcut" Value="1" Type="integer" KeyPath="yes"/>
         </Component>
       </Directory></Directory>
       <Directory Id="DesktopFolder" Name="Desktop">
@@ -62,7 +67,7 @@
       </Directory>
     </Directory>
     <Feature Id="Complete" Title="NUMA Control" Level="1">
-      <ComponentRef Id="MainExecutable"/><ComponentRef Id="RuntimeConfig"/><ComponentRef Id="Documentation"/><ComponentRef Id="MenuShortcuts"/><ComponentRef Id="DesktopShortcut"/>
+      <ComponentRef Id="MainExecutable"/><ComponentRef Id="RuntimeConfig"/><ComponentRef Id="Documentation"/><ComponentRef Id="MenuShortcuts"/><ComponentRef Id="StandaloneUninstallShortcut"/><ComponentRef Id="DesktopShortcut"/>
     </Feature>
     <CustomAction Id="CleanOwnedShortcuts" FileKey="ApplicationExe" ExeCommand="--uninstall-cleanup" Execute="immediate" Return="ignore"/>
     <InstallExecuteSequence>

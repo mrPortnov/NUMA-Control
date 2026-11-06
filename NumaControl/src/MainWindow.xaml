@@ -64,7 +64,7 @@
       <ScrollViewer x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed"><StackPanel x:Name="SettingsBody" Margin="0,0,8,12"/></ScrollViewer>
       <ScrollViewer x:Name="DiagnosticsView" Grid.Row="1" Visibility="Collapsed"><StackPanel x:Name="DiagnosticsBody" Margin="0,0,8,12"/></ScrollViewer>
       <Grid x:Name="LogView" Grid.Row="1" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><DockPanel Margin="0,0,0,16"><Button x:Name="RefreshLog" DockPanel.Dock="Right" Content="Обновить"/><TextBlock Text="Последние 250 записей · новые сверху" Foreground="#949DB1" VerticalAlignment="Center"/></DockPanel><TextBox x:Name="LogText" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"/></Grid>
-      <Grid Grid.Row="2" Margin="0,12,0,0"><TextBlock x:Name="Toast" Text="" Foreground="#7F899D" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,0,35,0"/><TextBlock Text="v1.7.0" HorizontalAlignment="Right" Foreground="#606B80" FontSize="10"/></Grid>
+      <Grid Grid.Row="2" Margin="0,12,0,0"><TextBlock x:Name="Toast" Text="" Foreground="#7F899D" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,0,35,0"/><TextBlock Text="v1.7.1" HorizontalAlignment="Right" Foreground="#606B80" FontSize="10"/></Grid>
     </Grid>
   </Grid>
 </Window>

@@ -6,7 +6,7 @@
     </BootstrapperApplicationRef>
     <Chain>
       <PackageGroupRef Id="NetFx48Web" />
-      <MsiPackage Id="NumaControlMsi" SourceFile="$(var.MsiPath)" Compressed="yes" DisplayInternalUI="yes" Visible="yes" Vital="yes">
+      <MsiPackage Id="NumaControlMsi" SourceFile="$(var.MsiPath)" Compressed="yes" DisplayInternalUI="yes" Visible="$(var.MsiVisible)" Vital="yes">
         <?ifdef IsolationDirectory ?>
         <MsiProperty Name="INSTALLFOLDER" Value="$(var.IsolationDirectory)\app" />
         <MsiProperty Name="APPLICATIONMENUFOLDER" Value="$(var.IsolationDirectory)\menu" />
