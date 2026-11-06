@@ -1,8 +1,9 @@
 #requires -Version 5.1
-param([Parameter(Mandatory=$true)][string]$SetupPath)
+param([Parameter(Mandatory=$true)][string]$SetupPath, [string]$MsiPath)
 $ErrorActionPreference='Stop'
 $project=Split-Path -Parent $PSScriptRoot
 $SetupPath=[IO.Path]::GetFullPath($SetupPath)
+if(-not $MsiPath){$MsiPath=[IO.Path]::ChangeExtension($SetupPath,'.msi')}
 $version=([version][Diagnostics.FileVersionInfo]::GetVersionInfo($SetupPath).FileVersion).ToString(3)
 $id=[Guid]::NewGuid().ToString('N')
 $run=Join-Path $PSScriptRoot ('artifacts\bootstrapper-'+$id)
@@ -17,6 +18,9 @@ function Run-Setup([string]$path,[string[]]$options,[string]$log){
 $extract=Join-Path $run 'extracted'
 & (Join-Path $project '.tools\wix-3.14.1\dark.exe') -nologo -x $extract $SetupPath
 if($LASTEXITCODE -ne 0){throw 'Cannot extract the production bootstrapper.'}
+$embedded=@(Get-ChildItem -LiteralPath (Join-Path $extract 'AttachedContainer') -File -Recurse)
+Check ($embedded.Count -eq 1 -and $embedded[0].Name -eq [IO.Path]::GetFileName($MsiPath) -and
+    (Get-FileHash -LiteralPath $embedded[0].FullName).Hash -eq (Get-FileHash -LiteralPath $MsiPath).Hash) 'setup contains only the exact verified MSI'
 $manifestFiles=@(Get-ChildItem -LiteralPath $extract -Filter '*.xml' -Recurse -File|Where-Object{[IO.File]::ReadAllText($_.FullName).Contains('DetectCondition="NETFRAMEWORK45')})
 Check ($manifestFiles.Count -eq 1) 'production bootstrapper exposes a pinned .NET detection manifest'
 [xml]$manifest=[IO.File]::ReadAllText($manifestFiles[0].FullName)

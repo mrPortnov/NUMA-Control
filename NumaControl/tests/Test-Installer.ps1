@@ -1,14 +1,17 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 param([string]$MsiPath)
 $ErrorActionPreference='Stop'
 $project=Split-Path -Parent $PSScriptRoot
-if(-not $MsiPath) { $MsiPath=Join-Path $project 'NUMA-Control-1.6.1-setup-x64.msi' }
+if(-not $MsiPath) { $MsiPath=Join-Path $project 'NUMA-Control-1.7.0-setup-x64.msi' }
 $MsiPath=[IO.Path]::GetFullPath($MsiPath)
 $isolationId=[Guid]::NewGuid().ToString('N'); $run=Join-Path $PSScriptRoot ('artifacts\installer-'+$isolationId); [void](New-Item -ItemType Directory -Path $run)
 $installFolder=Join-Path $run 'Приложение с пробелами'; $menuFolder=Join-Path $run 'Start menu'
 $desktopFolder=Join-Path $run 'Desktop'
 $oldMsi=Join-Path $run 'older.msi'; $failMsi=Join-Path $run 'rollback.msi'
 $production=Get-Content -LiteralPath ($MsiPath+'.json') -Raw|ConvertFrom-Json
+$payload=Join-Path $run 'production'
+& (Join-Path $project '.tools\wix-3.14.1\dark.exe') -nologo -sw1059 -x $payload $MsiPath -o (Join-Path $run 'production.wxs')
+if($LASTEXITCODE -ne 0) { throw 'Cannot extract the production MSI.' }
 $isolatedMsi=Join-Path $run 'current-isolated.msi'
 & (Join-Path $project 'Build-Installer.ps1') -ProductVersion $production.ProductVersion -OutputPath $isolatedMsi -IsolationId $isolationId
 & (Join-Path $project 'Build-Installer.ps1') -ProductVersion '1.4.99' -OutputPath $oldMsi -IsolationId $isolationId
@@ -34,6 +37,13 @@ function Run-Msi([string[]]$options,[string]$log,[int[]]$expected=@(0)) {
     } finally { $process.Dispose() }
 }
 try {
+    $files=[ordered]@{ApplicationExe='NUMA-Control.exe';ApplicationConfig='NUMA-Control.exe.config';Readme='README.md';ReadmeRu='README.ru.md';UserGuide='USER-GUIDE.md';UserGuideRu='USER-GUIDE.ru.md'}
+    $actual=@(Get-ChildItem -LiteralPath (Join-Path $payload 'File') -File -Recurse | Select-Object -ExpandProperty Name)
+    Check ($actual.Count -gt 0 -and -not (Compare-Object @($files.Keys) $actual -CaseSensitive)) 'production MSI ships only the application and bilingual documents'
+    foreach($file in $files.GetEnumerator()) {
+        $extracted=Join-Path $payload ('File\'+$file.Key)
+        Check ((Get-FileHash -LiteralPath $extracted).Hash -eq (Get-FileHash -LiteralPath (Join-Path $project $file.Value)).Hash) ('production MSI matches the verified payload: '+$file.Value)
+    }
     Check ($current.UpgradeCode -ne $production.UpgradeCode -and $current.IsolationId -eq $isolationId) 'test package has isolated product, upgrade, component and registry identities'
     foreach($package in @($current,$older,$failure)) { if((Product-State $package.ProductCode) -eq 5) { throw 'A matching product is already installed. Refusing to alter a user installation.' } }
     $database=Com-Method $installer 'OpenDatabase' @($MsiPath,0)

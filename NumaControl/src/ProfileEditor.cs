@@ -17,6 +17,8 @@ namespace NumaControl
         private readonly Configuration library;
         private readonly Interaction interaction;
         private readonly Action<GameProfile, bool> commit;
+        private string launchDirectory;
+        private bool launchViaShell;
         internal GameProfile Result;
         internal bool DeleteRequested;
         internal ProfileEditor(Window owner, GameProfile game, Topology cpu, Configuration current, Interaction dialogs = null, Action<GameProfile, bool> save = null)
@@ -37,13 +39,21 @@ namespace NumaControl
             TextBlock hint = Ui.Text(L10n.T("Выбери запущенный процесс или укажи EXE игры. Точный путь позволяет различать игры с одинаковым именем процесса."), 12, "#949DB1"); hint.Margin = new Thickness(0, 9, 0, 16); body.Children.Add(hint);
             WrapPanel methods = new WrapPanel();
             methods.Children.Add(Ui.Button(L10n.T("Из запущенных процессов"), PickProcess, true, "ChooseProcess"));
-            methods.Children.Add(Ui.Button(L10n.T("Выбрать файл .exe"), BrowseGame, false, "BrowseGameExe")); body.Children.Add(methods);
+            methods.Children.Add(Ui.Button(L10n.T("Выбрать файл .exe"), BrowseGame, false, "BrowseGameExe"));
+            body.Children.Add(methods);
             name = Field(body, L10n.T("Название в библиотеке"), game == null ? "" : game.Name);
             process = Field(body, L10n.T("Имя процесса без .exe"), game == null ? "" : game.ProcessName);
             path = Field(body, L10n.T("Точный путь к EXE игры · можно оставить пустым"), game == null ? "" : game.ExePath);
-            launch = Field(body, L10n.T("Цель запуска · EXE игры / лаунчера или ссылка Steam / Astrum"), game == null ? "" : game.LaunchTarget);
-            body.Children.Add(Ui.Button(L10n.T("Выбрать файл запуска / лаунчер"), BrowseLaunch, false, "BrowseLaunchExe"));
-            body.Children.Add(Ui.Text(L10n.T("Например: steam://rungameid/730. Для игр с лаунчером укажи ссылку или EXE лаунчера, а выше — процесс самой игры."), 11, "#949DB1"));
+            launch = Field(body, L10n.T("Цель запуска · EXE или ссылка лаунчера"), game == null ? "" : game.LaunchTarget);
+            launchDirectory = game == null ? "" : game.LaunchDirectory;
+            launchViaShell = game != null && game.LaunchViaShell;
+            launch.TextChanged += delegate { launchDirectory = ""; launchViaShell = false; };
+            var launchOptions = new WrapPanel();
+            launchOptions.Children.Add(Ui.Button(L10n.T("Выбрать файл запуска / лаунчер"), BrowseLaunch, false, "BrowseLaunchExe"));
+            launchOptions.Children.Add(Ui.Button(L10n.T("Взять цель из ярлыка"), BrowseLauncherShortcut, false, "BrowseLauncherShortcut"));
+            body.Children.Add(launchOptions);
+            body.Children.Add(Ui.Text(L10n.T("Для Epic Games, Battle.net и Ubisoft Connect выберите ярлык игры. Выше укажите процесс самой игры."), 11, "#949DB1"));
+            body.Children.Add(Ui.Text(L10n.T("Для Fortnite можно оставить цель запуска пустой. NUMA Control найдёт ссылку Epic автоматически."), 11, "#949DB1"));
             arguments = Field(body, L10n.T("Аргументы запуска · только для EXE"), game == null ? "" : game.Arguments);
             name.Name = "GameNameInput"; process.Name = "ProcessNameInput"; path.Name = "GamePathInput"; launch.Name = "LaunchTargetInput"; arguments.Name = "ArgumentsInput";
             enabled = new CheckBox { Content = L10n.T("Автоматически следить за этой игрой"), IsChecked = game == null || game.Enabled, Margin = new Thickness(0, 17, 0, 9), Style = (Style)Application.Current.FindResource("Switch") }; body.Children.Add(enabled);
@@ -82,13 +92,28 @@ namespace NumaControl
             string selectedPath = interaction.Open(this, L10n.T("Выберите EXE игры или лаунчера"), L10n.T("Приложения Windows|*.exe"));
             if (selectedPath != null) launch.Text = selectedPath;
         }
+        private void BrowseLauncherShortcut()
+        {
+            string selectedPath = interaction.Open(this, L10n.T("Выберите ярлык игры"), L10n.T("Ярлыки игр|*.lnk;*.url"));
+            if (selectedPath == null) return;
+            try
+            {
+                LauncherTarget target = LauncherTargets.ReadShortcut(selectedPath);
+                launch.Text = target.Target;
+                arguments.Text = target.Arguments;
+                launchDirectory = target.Directory;
+                launchViaShell = true;
+            }
+            catch (Exception error) { interaction.Ask(this, error.Message, L10n.T("Проверьте параметры"), MessageBoxButton.OK, MessageBoxImage.Warning); }
+        }
         private void SetExecutable(string executable)
         {
-            bool followLaunch = string.IsNullOrWhiteSpace(launch.Text) || string.Equals(launch.Text, path.Text, StringComparison.OrdinalIgnoreCase);
+            bool followLaunch = !launchViaShell && (string.IsNullOrWhiteSpace(launch.Text) ||
+                string.Equals(launch.Text, path.Text, StringComparison.OrdinalIgnoreCase));
             bool followName = string.IsNullOrWhiteSpace(name.Text) || name.Text == process.Text;
             path.Text = executable; process.Text = Path.GetFileNameWithoutExtension(executable);
             if (followName) name.Text = process.Text;
-            if (followLaunch) launch.Text = executable;
+            if (followLaunch) launch.Text = LauncherTargets.IsFortniteProcess(process.Text) ? "" : executable;
         }
         private void PickProcess()
         {
@@ -106,6 +131,8 @@ namespace NumaControl
                 g.Name = name.Text.Trim(); g.ProcessName = process.Text.Trim();
                 if (g.ProcessName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) g.ProcessName = g.ProcessName.Substring(0, g.ProcessName.Length - 4);
                 g.ExePath = path.Text.Trim(); g.LaunchTarget = launch.Text.Trim(); g.Arguments = arguments.Text.Trim(); g.Enabled = enabled.IsChecked == true; g.HighPriority = highPriority.IsChecked == true;
+                g.LaunchDirectory = launchDirectory;
+                g.LaunchViaShell = launchViaShell;
                 Configuration check = library.Copy();
                 if (original != null) check.Games.RemoveAll(p => p.Id == original.Id);
                 check.Games.Add(g); check.Validate(topology, false);

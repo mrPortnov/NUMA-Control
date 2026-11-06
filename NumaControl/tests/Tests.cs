@@ -72,6 +72,7 @@ namespace NumaControl
                 Release13Checks();
                 ExtendedFunctional(topology);
                 SelfAffinityChecks(topology, args[1]);
+                LauncherTargetChecks(topology, args[1]);
                 ShortcutsAndLegacy();
                 Channels();
                 AffinityIntegration(topology, args[1]);

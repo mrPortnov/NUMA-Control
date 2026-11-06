@@ -1,5 +1,5 @@
 #requires -Version 5.1
-param([string]$ProductVersion='1.6.1',[Parameter(Mandatory=$true)][string]$MsiPath,[string]$OutputPath,[string]$IsolationId,[string]$IsolationDirectory)
+param([string]$ProductVersion='1.7.0',[Parameter(Mandatory=$true)][string]$MsiPath,[string]$OutputPath,[string]$IsolationId,[string]$IsolationDirectory)
 $ErrorActionPreference='Stop'
 if($ProductVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Use a three-part release version.'}
 $MsiPath=[IO.Path]::GetFullPath($MsiPath)

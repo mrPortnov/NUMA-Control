@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 param([int]$Seconds=20,[int]$Switches=80,[int]$SteadySeconds=360)
 $ErrorActionPreference='Stop'
 if($Seconds -lt 10 -or $Switches -lt 8 -or $SteadySeconds -lt 120) {throw 'Use meaningful phase, switch and steady-state durations.'}

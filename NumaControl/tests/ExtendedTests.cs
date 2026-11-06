@@ -203,11 +203,48 @@ namespace NumaControl
                 Press(w, "PauseAll"); Check(!controller.Config.Paused, "global continue resumes observation"); Press(w, "PauseAll"); Check(controller.Config.Paused, "global pause stops observation");
                 interaction.Editors.Enqueue(editor => { Press(editor, "SaveProfile"); Check(interaction.Messages.Last().Contains("название"), "empty editor validation explains missing name"); Press(editor, "CancelProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 3, "cancel add leaves library intact");
+                string launcherLink = Path.Combine(directory, "Game launcher.url");
+                const string launcherUri = "uplay://launch/123/0";
+                File.WriteAllText(launcherLink, "[InternetShortcut]\r\nURL=" + launcherUri + "\r\n");
+                interaction.Editors.Enqueue(editor =>
+                {
+                    interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe");
+                    interaction.OpenPaths.Enqueue(launcherLink); Press(editor, "BrowseLauncherShortcut");
+                    Check(Control<TextBox>(editor, "GamePathInput").Text == fixture && Control<TextBox>(editor, "LaunchTargetInput").Text == launcherUri,
+                        "profile editor imports the launcher shortcut without changing the monitored EXE");
+                    Press(editor, "CancelProfile");
+                });
+                Press(w, "AddGame");
+                interaction.Editors.Enqueue(editor =>
+                {
+                    const string client = "FortniteClient-Win64-Shipping.exe";
+                    string gamePath = Path.Combine(Path.GetDirectoryName(fixture), client);
+                    interaction.OpenPaths.Enqueue(gamePath);
+                    Press(editor, "BrowseGameExe");
+                    Check(Control<TextBox>(editor, "GamePathInput").Text == gamePath &&
+                        Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(client) &&
+                        Control<TextBox>(editor, "LaunchTargetInput").Text == "",
+                        "the normal game editor leaves the Fortnite launch target automatic");
+                    Press(editor, "CancelProfile");
+                });
+                Press(w, "AddGame");
                 interaction.Editors.Enqueue(editor => { interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe"); Check(Control<TextBox>(editor, "GamePathInput").Text == fixture, "browse game fills exact path"); Check(Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(fixture), "browse game derives process name"); Control<TextBox>(editor, "GameNameInput").Text = "Тест игрового профиля"; interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseLaunchExe"); Press(editor, "SaveProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 4 && Control<TextBlock>(w, "SelectedName").Text == "Тест игрового профиля", "add via EXE creates and selects persisted profile");
                 string fixtureId = controller.Config.Games.Last().Id;
+                ulong fixtureMask = controller.Topology.Cores[0].Mask;
+                foreach (ToggleButton cpu in Descendants(Control<WrapPanel>(w, "CpuMap")).OfType<ToggleButton>())
+                {
+                    bool selected = (fixtureMask & (1UL << int.Parse((string)cpu.Content))) != 0;
+                    if (cpu.IsChecked != selected) typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(cpu, null);
+                }
+                if (Control<Button>(w, "SaveMask").IsEnabled) Press(w, "SaveMask");
+                bool expectedFallback;
+                ulong applicationMask = SelfAffinity.Choose(controller.Topology, fixtureMask, out expectedFallback);
                 Press(w, "LaunchGame"); Check(Until(() => GameLauncher.Running(controller.Config.Games.Last()), 3000) && !controller.Config.Paused, "UI launch starts fixture and resumes observer");
-                Check(Until(() => controller.Engine.AppAffinity.ActiveGames == 1 && !controller.Engine.AppAffinity.Fallback, 4000), "UI launch exposes dynamic application cores outside game mask"); w.Width = 1440; w.Height = 960; Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, "application-cores-free");
+                Check(Until(() => controller.Engine.AppAffinity.ActiveGames == 1 && controller.Engine.AppAffinity.GamesMask == fixtureMask &&
+                    controller.Engine.AppAffinity.Mask == applicationMask && controller.Engine.AppAffinity.Fallback == expectedFallback, 4000),
+                    "UI launch exposes the correct application cores for the selected game mask");
+                w.Width = 1440; w.Height = 960; Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, "application-cores-free");
                 Press(w, "PresetAll"); if (Control<Button>(w, "SaveMask").IsEnabled) Press(w, "SaveMask");
                 Check(Until(() => controller.Engine.AppAffinity.Fallback, 4000), "UI all-CPU profile exposes last-core fallback"); Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, "application-cores-last-fallback");
                 Press(w, "PresetEdges"); if (Control<Button>(w, "SaveMask").IsEnabled) Press(w, "SaveMask");
@@ -340,7 +377,7 @@ namespace NumaControl
                 Capture(editor, prefix + "profile-editor");
                 CheckBox priority = Control<CheckBox>(editor, "HighPriorityToggle"); priority.BringIntoView(); Pump();
                 Capture(editor, prefix + "profile-editor-bottom");
-                foreach (string label in new[] { "Название в библиотеке", "Имя процесса без .exe", "Точный путь к EXE игры · можно оставить пустым", "Цель запуска · EXE игры / лаунчера или ссылка Steam / Astrum", "Аргументы запуска · только для EXE" })
+                foreach (string label in new[] { "Название в библиотеке", "Имя процесса без .exe", "Точный путь к EXE игры · можно оставить пустым", "Цель запуска · EXE или ссылка лаунчера", "Аргументы запуска · только для EXE" })
                 {
                     TextBlock caption = Descendants(editor).OfType<TextBlock>().Single(text => text.Text == L10n.T(label));
                     Check(Contrast(((SolidColorBrush)caption.Foreground).Color.ToString(), ((SolidColorBrush)editor.Background).Color.ToString()) >= 4.5, "profile field label has readable contrast / " + prefix + " / " + L10n.T(label));
@@ -394,7 +431,14 @@ namespace NumaControl
                 click("Пауза наблюдения"); Check(!controller.Config.Paused, "tray pause command resumes observation"); click("Пауза наблюдения"); Check(controller.Config.Paused, "tray pause command pauses observation");
                 click("Автозапуск Windows"); Check(File.Exists(env.StartupPath), "tray autostart enables isolated shortcut"); click("Автозапуск Windows"); Check(!File.Exists(env.StartupPath), "tray autostart disables isolated shortcut");
                 click("Самодиагностика"); Check(Control<ScrollViewer>(w, "DiagnosticsView").Visibility == Visibility.Visible, "tray diagnostics opens resource screen");
-                Press(w, "LibraryNav"); Press(w, "PresetAll"); dialogs.Answers.Enqueue(MessageBoxResult.Cancel); click("Выход"); Check(w.IsVisible && !app.Dispatcher.HasShutdownStarted, "tray exit cancellation preserves unsaved draft and running app");
+                Press(w, "LibraryNav");
+                string saved = Control<TextBlock>(w, "MaskLabel").Text;
+                ToggleButton tile = Descendants(Control<WrapPanel>(w, "CpuMap")).OfType<ToggleButton>().First();
+                typeof(ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(tile, null);
+                string unsaved = Control<TextBlock>(w, "MaskLabel").Text;
+                dialogs.Answers.Enqueue(MessageBoxResult.Cancel); click("Выход");
+                Check(w.IsVisible && !app.Dispatcher.HasShutdownStarted && Control<TextBlock>(w, "MaskLabel").Text == unsaved &&
+                    unsaved != saved, "tray exit cancellation preserves unsaved draft and running app");
                 dialogs.Answers.Enqueue(MessageBoxResult.No); click("Выход"); if (!app.Dispatcher.HasShutdownStarted) Pump(); Check(!w.IsVisible, "tray exit confirmation closes interface and requests shutdown");
             }
         }

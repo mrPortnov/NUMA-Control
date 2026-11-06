@@ -158,6 +158,8 @@ namespace NumaControl
         public string ExePath { get; set; }
         public string LaunchTarget { get; set; }
         public string Arguments { get; set; }
+        public string LaunchDirectory { get; set; }
+        public bool LaunchViaShell { get; set; }
         public string Mask { get; set; }
         public bool Enabled { get; set; }
         public bool HighPriority { get; set; }
@@ -215,7 +217,8 @@ namespace NumaControl
                     if (!string.Equals(Path.GetFileNameWithoutExtension(g.ExePath), g.ProcessName, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException(L10n.T("Имя процесса не совпадает с именем EXE."));
                 }
                 ValidateLaunch(g.LaunchTarget);
-                if (g.Arguments != null && (g.Arguments.Length > 4096 || g.Arguments.IndexOfAny(new[] { '\r', '\n', '\0' }) >= 0)) throw new InvalidDataException(L10n.T("Некорректные аргументы запуска."));
+                ValidateLaunchArguments(g.Arguments);
+                LauncherTargets.ValidateDirectory(g.LaunchDirectory);
                 if (g.Color == null || !System.Text.RegularExpressions.Regex.IsMatch(g.Color, "^#[0-9a-fA-F]{6}$")) g.Color = "#8C83FF";
             }
             for (int i = 0; i < Games.Count; i++) for (int j = i + 1; j < Games.Count; j++)
@@ -229,9 +232,14 @@ namespace NumaControl
         }
         internal static bool IsGameUri(string target)
         {
-            return target != null && System.Text.RegularExpressions.Regex.IsMatch(target, @"\A(?:steam://rungameid/[0-9]+|astrumplay://play/[0-9.]+)\z", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return target != null && (LauncherTargets.IsClientUri(target) || System.Text.RegularExpressions.Regex.IsMatch(target, @"\A(?:steam://rungameid/[0-9]+|astrumplay://play/[0-9.]+)\z", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant));
         }
         internal static void ValidateLaunch(string target) { if (!string.IsNullOrWhiteSpace(target) && !IsGameUri(target)) ValidateExe(target); }
+        internal static void ValidateLaunchArguments(string arguments)
+        {
+            if (arguments != null && (arguments.Length > 4096 || arguments.IndexOfAny(new[] { '\r', '\n', '\0' }) >= 0))
+                throw new InvalidDataException(L10n.T("Некорректные аргументы запуска."));
+        }
     }
 
     internal sealed class ProfileStore
@@ -414,6 +422,7 @@ namespace NumaControl
                     List<string> errors = new List<string>();
                     foreach (Process process in candidates)
                     {
+                        string operation = L10n.T("проверка процесса");
                         try
                         {
                             if (ProcessSnapshot.Session(process.Id) != session) continue;
@@ -421,20 +430,33 @@ namespace NumaControl
                             using (SafeProcessHandle handle = Native.Open(process.Id, false))
                             {
                                 if (!game.Matches(Native.Image(handle))) continue;
-                                bool applied = false;
-                                if (Native.ReadMask(handle) != game.CpuMask || (game.HighPriority && Native.ReadPriority(handle) != 0x80))
+                                status.Running++;
+                                status.Pids.Add(process.Id);
+                                operation = L10n.T("чтение маски ЦП");
+                                if (Native.ReadMask(handle) != game.CpuMask)
                                 {
-                                    // The query handle remains open; recheck identity on the writable handle as well.
+                                    operation = L10n.T("назначение маски ЦП");
                                     using (SafeProcessHandle writable = Native.Open(process.Id, true))
                                     {
                                         if (!game.Matches(Native.Image(writable))) continue;
-                                        applied = Native.Apply(writable, game.CpuMask);
-                                        if (game.HighPriority && Native.ApplyHighPriority(writable)) { applied = true; log.Write(game.Name + " · PID " + process.Id + L10n.T(" → высокий приоритет")); }
+                                        if (Native.Apply(writable, game.CpuMask))
+                                            log.Write(game.Name + " · PID " + process.Id + " → 0x" + game.Mask);
                                     }
                                 }
-                                status.Running++; status.Pids.Add(process.Id);
                                 status.Applied++;
-                                if (applied) log.Write(game.Name + " · PID " + process.Id + " → 0x" + game.Mask);
+                                if (game.HighPriority)
+                                {
+                                    operation = L10n.T("чтение приоритета");
+                                    if (Native.ReadPriority(handle) != 0x80)
+                                    {
+                                        operation = L10n.T("назначение высокого приоритета");
+                                        using (SafeProcessHandle writable = Native.Open(process.Id, true))
+                                        {
+                                            if (game.Matches(Native.Image(writable)) && Native.ApplyHighPriority(writable))
+                                                log.Write(game.Name + " · PID " + process.Id + L10n.T(" → высокий приоритет"));
+                                        }
+                                    }
+                                }
                             }
                         }
                         catch (InvalidOperationException error) { errors.Add(error.Message); }
@@ -443,10 +465,16 @@ namespace NumaControl
                             bool exited;
                             try { exited = process.HasExited; } catch (InvalidOperationException) { exited = true; } catch (Win32Exception) { exited = false; }
                             if (exited) continue;
-                            errors.Add(error.NativeErrorCode == 5 ? L10n.T("Отказано в доступе. Если игра запущена администратором, нужны такие же права; защищённый процесс может запрещать изменение.") : error.Message);
+                            errors.Add("PID " + process.Id + " · " + operation + " · " +
+                                (error.NativeErrorCode == 5 ? L10n.T("Windows отказала в доступе (код 5).") : error.Message));
                         }
                     }
-                    if (errors.Count > 0) { status.State = L10n.T("Нужна проверка"); status.Detail = string.Join(" ", errors.Distinct()); status.Error = true; }
+                    if (errors.Count > 0)
+                    {
+                        status.State = L10n.T("Нужна проверка");
+                        status.Detail = (status.Applied > 0 ? L10n.T("Маска ЦП подтверждена для процессов: ") + status.Applied + ". " : "") + string.Join(" ", errors.Distinct());
+                        status.Error = true;
+                    }
                     else if (status.Running > 0) { status.State = L10n.T("Правило применено"); status.Detail = "PID " + string.Join(", ", status.Pids) + L10n.T(" · маска 0x") + game.Mask + (game.HighPriority ? L10n.T(" · высокий приоритет") : "") + L10n.T(" · автоматическое восстановление"); }
                 }
                 if (selfAffinity != null) selfAffinity.Refresh(c, processes, session, snapshot);

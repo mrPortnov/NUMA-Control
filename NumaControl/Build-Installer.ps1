@@ -1,5 +1,5 @@
 #requires -Version 5.1
-param([string]$ProductVersion='1.6.1',[string]$OutputPath,[switch]$InjectRollback,[string]$IsolationId)
+param([string]$ProductVersion='1.7.0',[string]$OutputPath,[switch]$InjectRollback,[string]$IsolationId)
 $ErrorActionPreference='Stop'
 if($ProductVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a three-part MSI version.' }
 if($IsolationId -and $IsolationId -notmatch '^[0-9a-f]{32}$') { throw 'IsolationId must be a lowercase GUID without separators.' }
@@ -15,7 +15,7 @@ $authoring=Join-Path $PSScriptRoot 'installer\Product.wxs'
 $upgradeCode='{5B491C32-5ADB-44C9-8E40-EA269B744AA9}'
 if($IsolationId) {
     function Isolated-Guid([string]$seed) { $algorithm=[Security.Cryptography.MD5]::Create(); try { return ([Guid]::new($algorithm.ComputeHash([Text.Encoding]::UTF8.GetBytes($IsolationId+$seed)))).ToString('D').ToUpperInvariant() } finally {$algorithm.Dispose()} }
-    $isolatedSource=Get-Content -LiteralPath $authoring -Raw
+    $isolatedSource=[IO.File]::ReadAllText($authoring)
     $privateUpgrade=Isolated-Guid 'upgrade'; $upgradeCode='{'+$privateUpgrade+'}'
     $isolatedSource=$isolatedSource.Replace('5B491C32-5ADB-44C9-8E40-EA269B744AA9',$privateUpgrade).Replace('Software\NUMA Control\Installer',('Software\NUMA Control\Tests\'+$IsolationId+'\Installer'))
     $isolatedSource=[regex]::Replace($isolatedSource,'Guid="([0-9A-Fa-f-]{36})"',{param($match) 'Guid="'+(Isolated-Guid $match.Groups[1].Value)+'"'})
