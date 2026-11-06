@@ -97,6 +97,7 @@ try {
     if ($SmokeTest) { & (Join-Path $project 'tests\Check-Launch.ps1') -MeasureSeconds 15 }
     if ($ScanWithDefender) {
         $defender = Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" -File |
+            Where-Object { $_.Directory.Name -match '^\d+\.\d+\.\d+\.\d+(?:-\d+)?$' } |
             Sort-Object { [version]($_.Directory.Name -split '-')[0] } -Descending | Select-Object -First 1
         if (-not $defender) { throw 'Microsoft Defender command line scanner is unavailable.' }
         & $defender.FullName -Scan -ScanType 3 -File $releaseRoot -DisableRemediation
