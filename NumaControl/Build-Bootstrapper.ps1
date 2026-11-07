@@ -1,5 +1,5 @@
 #requires -Version 5.1
-param([string]$ProductVersion='1.7.2',[Parameter(Mandatory=$true)][string]$MsiPath,[string]$OutputPath,[string]$IsolationId,[string]$IsolationDirectory,[switch]$LegacyMsiEntry)
+param([string]$ProductVersion='1.7.3',[Parameter(Mandatory=$true)][string]$MsiPath,[string]$OutputPath,[string]$IsolationId,[string]$IsolationDirectory,[switch]$LegacyMsiEntry)
 $ErrorActionPreference='Stop'
 if($ProductVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Use a three-part release version.'}
 if($LegacyMsiEntry -and -not $IsolationId){throw 'A visible chained MSI is available only for an isolated upgrade test.'}

@@ -24,10 +24,11 @@ namespace NumaControl
             c.Games.Add(new GameProfile { Name = "Warface", ProcessName = "Game", ExePath = @"D:\AstrumPlay\Warface\Bin64Release\Game.exe", LaunchTarget = "astrumplay://play/0.1177", Enabled = t.Supported, Mask = mask, Color = "#72CCB0", HighPriority = false });
             return c;
         }
-        private static void Check(bool condition, string name)
+        private static void Check(bool condition, string name, bool writeSuccess = true)
         {
             if (!condition) throw new Exception("FAIL: " + name);
-            passed++; results.Add(new { Name = name, Passed = true }); Console.WriteLine("PASS " + name);
+            passed++; results.Add(new { Name = name, Passed = true });
+            if (writeSuccess) Console.WriteLine("PASS " + name);
         }
         private static void Reject(Action action, string name)
         {
@@ -81,7 +82,9 @@ namespace NumaControl
                 string releasePath = Path.GetFullPath(Path.Combine(root, "..", "..", "..", "NUMA-Control.exe"));
                 string releaseHash;
                 using (var sha = System.Security.Cryptography.SHA256.Create()) using (FileStream release = File.OpenRead(releasePath)) releaseHash = BitConverter.ToString(sha.ComputeHash(release)).Replace("-", "");
-                File.WriteAllText(Path.Combine(root, "test-results.json"), ProfileStore.Serializer().Serialize(new { Date = DateTime.Now.ToString("o"), Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(), ReleaseSha256 = releaseHash, Passed = passed, Tests = results }), Encoding.UTF8);
+                var visual = new { Schema = 1, Checks = visualChecks, Cases = visualCases.ToArray() };
+                File.WriteAllText(Path.Combine(root, "test-results.json"), ProfileStore.Serializer().Serialize(new { Date = DateTime.Now.ToString("o"), Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(), ReleaseSha256 = releaseHash, Passed = passed, Visual = visual, Tests = results }), Encoding.UTF8);
+                Console.WriteLine("VISUAL PASSED: " + visualChecks + " checks across " + visualCases.Count + " language, theme and size scenarios");
                 Console.WriteLine("ALL PASSED: " + passed); return 0;
             }
             catch (Exception e)

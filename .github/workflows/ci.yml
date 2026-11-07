@@ -46,6 +46,10 @@ jobs:
         if: env.VERIFY_RELEASE != 'true'
         shell: powershell
         run: ./NumaControl/tests/Run-Tests.ps1
+      - name: Verify and summarize visual coverage
+        if: env.VERIFY_RELEASE != 'true'
+        shell: powershell
+        run: ./scripts/Test-VisualResults.ps1 -Path ./NumaControl/tests/artifacts/latest-results.json
       - name: Get pinned WiX tools
         if: env.VERIFY_RELEASE == 'true'
         shell: powershell
@@ -102,6 +106,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           version="${TAG#v}"
           portable="NUMA-Control-$version-portable-x64.zip"
@@ -113,6 +118,52 @@ jobs:
           commit="$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)"
           tr -d '\r' < SOURCE.txt | grep -Fx "Version: $version"
           tr -d '\r' < SOURCE.txt | grep -Fx "Source commit: $commit"
+          existing_tags="$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq '.[].tag_name')"
+          if grep -Fxq "$TAG" <<< "$existing_tags"; then
+            echo "A release already exists for $TAG. Review its draft or published assets before retrying."
+            exit 1
+          fi
+
+          release_section() {
+            gh api -H 'Accept: application/vnd.github.raw+json' "repos/$GH_REPO/contents/$1?ref=$commit" |
+              tr -d '\r' |
+              awk -v version="$version" '
+                /^##([[:blank:]]|$)/ {
+                  ++sections
+                  if (sections == 1) {
+                    heading = $2
+                    sub(/^\[/, "", heading)
+                    sub(/\].*$/, "", heading)
+                    matches = heading == version
+                  }
+                  next
+                }
+                sections == 1 && matches {
+                  if (/^- /) ++bullets
+                  print
+                }
+                END { if (!matches || !bullets) exit 1 }
+              '
+          }
+          release_section CHANGELOG.md > "$RUNNER_TEMP/release-en.md" ||
+            { echo "The English changelog needs a top section for $TAG."; exit 1; }
+          release_section CHANGELOG.ru.md > "$RUNNER_TEMP/release-ru.md" ||
+            { echo "The Russian changelog needs a top section for $TAG."; exit 1; }
+          source="https://github.com/$GH_REPO/blob/$commit"
+          {
+            printf '## English\n'
+            cat "$RUNNER_TEMP/release-en.md"
+            printf '\nUse `%s` for the recommended setup. Compare the downloaded file with `SHA256SUMS.txt`.\n' "$setup"
+            printf '\n[User guide](%s/NumaControl/USER-GUIDE.md) · [Changelog](%s/CHANGELOG.md)\n\n' "$source" "$source"
+            printf '## Русский\n'
+            cat "$RUNNER_TEMP/release-ru.md"
+            printf '\nДля обычной установки скачайте `%s`. Сверьте хеш файла с `SHA256SUMS.txt`.\n' "$setup"
+            printf '\n[Руководство пользователя](%s/NumaControl/USER-GUIDE.ru.md) · [История изменений](%s/CHANGELOG.ru.md)\n' "$source" "$source"
+          } > "$RUNNER_TEMP/release-notes.md"
+          if (( $(wc -c < "$RUNNER_TEMP/release-notes.md") > 32768 )); then
+            echo "Release notes exceed the 32 KiB draft limit. Shorten the two current changelog sections."
+            exit 1
+          fi
           gh release create "$TAG" "$portable" "$msi" "$setup" SHA256SUMS.txt SOURCE.txt \
             --verify-tag --draft --title "NUMA Control $version" \
-            --notes "[English changelog](https://github.com/$GH_REPO/blob/$TAG/CHANGELOG.md) · [История изменений](https://github.com/$GH_REPO/blob/$TAG/CHANGELOG.ru.md)"
+            --notes-file "$RUNNER_TEMP/release-notes.md"

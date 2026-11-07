@@ -87,10 +87,12 @@ try {
         & (Join-Path $tests 'Test-Installer.ps1') -MsiPath $msi
         & (Join-Path $tests 'Test-Bootstrapper.ps1') -SetupPath $setup -MsiPath $msi
         & (Join-Path $tests 'Run-Tests.ps1') -SkipBuild
-        $result = Get-Content -LiteralPath (Join-Path $tests 'artifacts\latest-results.json') -Raw | ConvertFrom-Json
+        $resultsPath = Join-Path $tests 'artifacts\latest-results.json'
+        $result = Get-Content -LiteralPath $resultsPath -Raw | ConvertFrom-Json
         if ($result.Passed -le 0 -or $result.Version -ne ($Version + '.0') -or $result.ReleaseSha256 -ne (Get-FileHash -LiteralPath $exe).Hash) {
             throw 'Application test results do not match the packaged executable.'
         }
+        & (Join-Path $PSScriptRoot 'Test-VisualResults.ps1') -Path $resultsPath
         & (Join-Path $tests 'Run-Resilience.ps1') -SoakSeconds 120
         & (Join-Path $tests 'Stress-Test.ps1') -Seconds 10
         & (Join-Path $tests 'Audit-Themes.ps1') -Seconds 10 -Switches 32 -SteadySeconds 120

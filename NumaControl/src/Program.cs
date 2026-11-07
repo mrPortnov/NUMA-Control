@@ -271,6 +271,7 @@ namespace NumaControl
             {
                 if (!resources) { themeResources = Ui.Load<ResourceDictionary>("Theme.xaml"); app.Resources.MergedDictionaries.Add(themeResources); resources = true; }
                 window = Ui.Load<Window>("MainWindow.xaml");
+                Find<TextBlock>("VersionLabel").Text = "v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
                 Ui.FitScreen(window);
                 if (Preview) window.Title += L10n.T(" — предпросмотр");
                 else if (isolated) window.Title += L10n.T(" — тест");

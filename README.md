@@ -6,9 +6,11 @@ A Windows desktop application for assigning game processes to selected CPU cores
 
 [Download the latest release](https://github.com/mrPortnov/NUMA-Control/releases/latest) · [User guide](NumaControl/USER-GUIDE.md) · [Release history](CHANGELOG.md) · [Report an issue](https://github.com/mrPortnov/NUMA-Control/issues)
 
+The features and screenshots on this page describe **1.7.3**. For the version you downloaded, use the guide included in the installation folder or portable ZIP. [User guide for 1.6.1](https://github.com/mrPortnov/NUMA-Control/blob/v1.6.1/NumaControl/USER-GUIDE.md)
+
 ![NUMA Control game library and CPU selection, standard theme](docs/screenshots/en-library-standard.png)
 
-> **Anti-cheat compatibility:** Valve Anti-Cheat (VAC) is the only anti-cheat for which hard affinity and process priority have been verified. Fortnite was checked separately with Epic launch and Windows CPU Sets while Easy Anti-Cheat was active. High priority was denied in that check. Check your game's rules before using process scheduling tools.
+> **Anti-cheat compatibility.** Hard affinity and process priority were verified with Valve Anti-Cheat (VAC) only. In a separate Fortnite check with Easy Anti-Cheat active, the game started through Epic and Windows applied CPU Sets. Windows denied High priority. Check your game's rules before using process scheduling tools.
 
 NUMA Control uses documented Windows APIs to query processes, select their CPUs and request process priority. For Fortnite it uses Windows CPU Sets. It opens process handles for these operations and does not inject code, read or modify game memory, patch game files or bypass anti-cheat. [Windows CPU affinity](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask) · [Windows CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets) · [Process priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)
 
@@ -103,7 +105,7 @@ Compare the output with the corresponding line in `SHA256SUMS.txt`. The ZIP also
 | Steam | Match the game EXE and enter its Steam link as the launch target. Examples are `cs2.exe` with `steam://rungameid/730` and `dota2.exe` with `steam://rungameid/570`. |
 | Epic Games, Battle.net or Ubisoft Connect | Select the game EXE, then choose **Use game shortcut** and import the shortcut created by the client. If it opens the game page, press **Play** in the client. |
 
-For Fortnite, choose `FortniteClient-Win64-Shipping.exe` as the game process and import the shortcut created by Epic if you want to use **Launch game**. You can also start the game directly from Epic. [Create an Epic Games shortcut](https://www.epicgames.com/help/c-32735058/c-36403860/a20183292)
+For Fortnite, choose `FortniteClient-Win64-Shipping.exe` as the game process and import the shortcut created by Epic if you want to use **Launch game**. In an existing profile, use **Options → Use game shortcut**. You can also start the game directly from Epic. [Create an Epic Games shortcut](https://www.epicgames.com/help/c-32735058/c-36403860/a20183292)
 
 ### CPU Sets and hard affinity
 
@@ -180,6 +182,8 @@ The normal data directory is **`data` beside the EXE**. If that location is not 
 To move profiles to another PC, use **Settings → Export profiles** on the old PC. Use **Import profiles** on the new PC, review each EXE path and CPU selection, then resume monitoring. For a full backup on the same PC, close NUMA Control through the tray and copy its data folder. Exports include local executable paths and launch arguments, so review them before sharing.
 
 Profiles, logs and reports stay on your computer and are not sent automatically. Review reports and exports before sharing: they may contain local paths and process information.
+
+Report suspected vulnerabilities privately through GitHub. [Report a vulnerability](https://github.com/mrPortnov/NUMA-Control/security/advisories/new)
 
 ## Permissions and troubleshooting
 

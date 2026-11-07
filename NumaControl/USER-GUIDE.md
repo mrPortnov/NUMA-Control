@@ -1,24 +1,24 @@
-# NUMA Control 1.7.2 — user guide
+# NUMA Control 1.7.3 — user guide
 
 **[English](USER-GUIDE.md) · [Русский](USER-GUIDE.ru.md)**
 
 NUMA Control assigns selected Windows logical processors to game processes and reapplies the rule when needed. One tray controller manages your profiles, chooses its own cores and monitors its health. It does not allocate NUMA memory, disable SMT in firmware or reserve cores for Windows. Higher FPS or lower latency is not guaranteed; compare frame times and stability in your own games.
 
-> **Anti-cheat warning:** Tested only with Valve Anti-Cheat (VAC). Compatibility with other anti-cheat systems has not been tested or confirmed. VAC testing is not certification or a guarantee against restrictions by the game. Check the rules of your game before using process affinity or priority tools.
+> **Anti-cheat compatibility.** Hard affinity and process priority were verified with Valve Anti-Cheat (VAC) only. In a separate Fortnite check with Easy Anti-Cheat active, the game started through Epic and Windows applied CPU Sets. Windows denied High priority. Check your game's rules before using process scheduling tools.
 
-NUMA Control uses documented Windows APIs to query processes and change their CPU affinity ([SetProcessAffinityMask](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask)) and, optionally, priority ([SetPriorityClass](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)). It does not inject DLLs or code, read or modify game memory, patch game files or bypass anti-cheat. It opens process handles for these Windows operations; this does not imply approval by an anti-cheat provider.
+NUMA Control uses documented Windows APIs to query processes, set CPU affinity or CPU Sets, and optionally request High priority. It opens process handles for these operations and does not inject code, read or modify game memory, patch game files or bypass anti-cheat. [Windows CPU affinity](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask) · [Windows CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets) · [Process priority](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)
 
 ## Requirements and installation
 
 Requires **Windows 10/11 x64**, **.NET Framework 4.8** and **one processor group containing 1–64 logical processors**. The modern .NET SDK, Python, Node and source code are unnecessary for normal use. Unsupported multi-group systems cannot apply game masks.
 
-Download from [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases). Use one distribution at a time.
+Use the downloads for your version on GitHub Releases. The filenames below are for this guide's version, **1.7.3**. [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases)
 
 | Distribution | Installation |
 |---|---|
-| `NUMA-Control-1.7.2-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
-| `NUMA-Control-1.7.2-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
-| `NUMA-Control-1.7.2-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
+| `NUMA-Control-1.7.3-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
+| `NUMA-Control-1.7.3-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
+| `NUMA-Control-1.7.3-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
 
 The app, setup EXE and MSI are currently unsigned. Compare downloaded files with `SHA256SUMS.txt` from the same release; the portable ZIP also contains a per-file `SHA256.txt`. Checksums check integrity, not publisher identity. Respect Windows and organizational protection policies.
 

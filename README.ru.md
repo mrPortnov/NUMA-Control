@@ -6,9 +6,11 @@
 
 [Скачать актуальную версию](https://github.com/mrPortnov/NUMA-Control/releases/latest) · [Руководство пользователя](NumaControl/USER-GUIDE.ru.md) · [История изменений](CHANGELOG.ru.md) · [Сообщить о проблеме](https://github.com/mrPortnov/NUMA-Control/issues)
 
+Возможности и скриншоты на этой странице относятся к **1.7.3**. Руководство для скачанной версии находится в папке установленной программы или в архиве portable. [Руководство для 1.6.1](https://github.com/mrPortnov/NUMA-Control/blob/v1.6.1/NumaControl/USER-GUIDE.ru.md)
+
 ![Библиотека и карта процессора NUMA Control, стандартная тема](docs/screenshots/ru-library-standard.png)
 
-> **Совместимость с античитами:** Жёсткая привязка и приоритет проверены только с Valve Anti-Cheat (VAC). Для Fortnite отдельно проверены запуск через Epic и Windows CPU Sets при активном Easy Anti-Cheat. В повышении приоритета Windows отказала. Перед настройкой планирования процессов проверьте правила своей игры.
+> **Совместимость с античитами.** Жёсткая привязка и приоритет проверены только с Valve Anti-Cheat (VAC). В отдельной проверке Fortnite при активном Easy Anti-Cheat игра запустилась через Epic и Windows применила CPU Sets. В повышении приоритета Windows отказала. Перед настройкой планирования процессов проверьте правила своей игры.
 
 NUMA Control использует штатные Windows API для получения сведений о процессах, выбора ЦП и запроса приоритета. Для Fortnite применяется Windows CPU Sets. Программа открывает дескрипторы процессов для этих операций, не внедряет код, не читает и не изменяет память игры, не правит её файлы и не обходит античит. [Привязка ЦП в Windows](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask) · [Windows CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets) · [Приоритет процесса](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)
 
@@ -103,7 +105,7 @@ Get-FileHash -Path .\NUMA-Control-* -Algorithm SHA256
 | Steam | Укажите EXE игры, а в поле цели запуска — её ссылку Steam. Например, `cs2.exe` и `steam://rungameid/730` либо `dota2.exe` и `steam://rungameid/570`. |
 | Epic Games, Battle.net или Ubisoft Connect | Выберите EXE игры, нажмите **Взять цель из ярлыка** и откройте ярлык, созданный клиентом. Если он открыл страницу игры, нажмите **Играть** в клиенте. |
 
-Для Fortnite выберите `FortniteClient-Win64-Shipping.exe` как процесс игры. Если хотите пользоваться кнопкой **Запустить игру**, импортируйте ярлык, созданный в Epic. Игру также можно запустить прямо из Epic. [Как создать ярлык игры в Epic Games](https://www.epicgames.com/help/c-32735058/c-36403860/a20183292)
+Для Fortnite выберите `FortniteClient-Win64-Shipping.exe` как процесс игры. Для запуска кнопкой **Запустить игру** импортируйте ярлык, созданный в Epic. В существующем профиле откройте **Параметры → Взять цель из ярлыка**. Игру также можно запустить прямо из Epic. [Как создать ярлык игры в Epic Games](https://www.epicgames.com/help/c-32735058/c-36403860/a20183292)
 
 ### CPU Sets и жёсткая привязка
 
@@ -180,6 +182,8 @@ Get-FileHash -Path .\NUMA-Control-* -Algorithm SHA256
 Для переноса на другой компьютер воспользуйтесь **Настройки → Экспорт профилей**. На новом компьютере выберите **Импорт профилей**, проверьте пути к EXE и выбранные ЦП, затем возобновите наблюдение. Для полной резервной копии на том же ПК закройте NUMA Control через трей и скопируйте папку данных. Перед передачей экспорта проверьте локальные пути и аргументы запуска.
 
 Профили, журналы и отчёты хранятся на вашем компьютере и не отправляются автоматически. Перед передачей изучите отчёт или экспорт: в них могут быть локальные пути и сведения о процессах.
+
+Сообщения об уязвимостях можно отправить приватно через GitHub. [Сообщить об уязвимости](https://github.com/mrPortnov/NUMA-Control/security/advisories/new)
 
 ## Доступ и типичные проблемы
 

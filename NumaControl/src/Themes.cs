@@ -39,7 +39,7 @@ namespace NumaControl
             {"SelectedText", new[]{"#E4DDFF", "#004A90", "#C3E5FF", "#FFFFFF"}},
             {"Hover", new[]{"#242732", "#E6EBF2", "#404040", "#D2D2E0"}},
             {"Success", new[]{"#45D59D", "#087942", "#65DCA9", "#005520"}},
-            {"Warning", new[]{"#F5C75C", "#946000", "#F5CC72", "#754500"}},
+            {"Warning", new[]{"#F5C75C", "#895800", "#F5CC72", "#754500"}},
             {"Error", new[]{"#F28D9B", "#BD2439", "#FF9C9C", "#A0001B"}},
             {"SuccessBg", new[]{"#142B26", "#E3F4E9", "#183A30", "#CDE1CD"}},
             {"WarningBg", new[]{"#342C1B", "#FFF0CA", "#42351C", "#ECDCAD"}}
@@ -48,7 +48,7 @@ namespace NumaControl
         {
             Add("Bg", "#101218"); Add("Sidebar", "#151820"); Add("Panel", "#191C25");
             Add("Text", "#EEF0F8 #E4E7F2 #DDE1EF #DCE1ED #E8EBF5 #B5BED1 #BBC2D3");
-            Add("Muted", "#949DB1 #7D879C #A7A0C7 #7F899D #747F95 #606B80 #8993A9 #7F889D #8FA4A1 #84968E #9AA5BB");
+            Add("Muted", "#949DB1 #7D879C #A7A0C7 #7F899D #747F95 #8993A9 #7F889D #8FA4A1 #84968E #9AA5BB");
             Add("Line", "#2A2F3C #282D39 #2A2F3B #343A4B #353B4E #343A49 #41495D #48435F #655336");
             Add("SwitchOffTrack", "#3C4253"); Add("SwitchOffThumb", "#D4D8E4");
             Add("Button", "#252A37 #292D3C #32303D"); Add("Input", "#11141C #13161E");
