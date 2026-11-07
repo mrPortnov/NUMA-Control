@@ -6,7 +6,7 @@
 
 [Скачать актуальную версию](https://github.com/mrPortnov/NUMA-Control/releases/latest) · [Руководство пользователя](NumaControl/USER-GUIDE.ru.md) · [История изменений](CHANGELOG.ru.md) · [Сообщить о проблеме](https://github.com/mrPortnov/NUMA-Control/issues)
 
-Возможности и скриншоты на этой странице относятся к **1.7.3**. Руководство для скачанной версии находится в папке установленной программы или в архиве portable.
+Возможности и скриншоты на этой странице относятся к **1.7.4**. Руководство для скачанной версии находится в папке установленной программы или в архиве portable.
 
 ![Библиотека и карта процессора NUMA Control, стандартная тема](docs/screenshots/ru-library-standard.png)
 
@@ -202,3 +202,7 @@ Get-FileHash -Path .\NUMA-Control-* -Algorithm SHA256
 ## Документация
 
 [Подробное руководство](NumaControl/USER-GUIDE.ru.md) · [Краткая справка](NumaControl/README.ru.md) · [История изменений](CHANGELOG.ru.md)
+
+## Лицензия
+
+Собственные исходники, документация и оригинальная графика NUMA Control распространяются по MIT. Для компонентов установщика действуют отдельные условия. Setup показывает применимые условия перед установкой. Установленная программа и portable ZIP содержат `LICENSE.txt` и `THIRD-PARTY-NOTICES.txt`. [Лицензия MIT](LICENSE) · [Условия сторонних компонентов](THIRD-PARTY-NOTICES.txt)

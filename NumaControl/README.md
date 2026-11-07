@@ -1,4 +1,4 @@
-# NUMA Control 1.7.3 — quick reference
+# NUMA Control 1.7.4 — quick reference
 
 **[English](README.md) · [Русский](README.ru.md)**
 
@@ -12,9 +12,9 @@ NUMA Control uses documented Windows APIs to query processes, set CPU affinity o
 
 Requires Windows 10/11 x64, .NET Framework 4.8 and one processor group with 1–64 logical CPUs.
 
-- **Recommended setup:** `NUMA-Control-1.7.3-setup-x64.exe` detects .NET Framework 4.8 or later. If missing, it downloads the official Microsoft prerequisite and installs it before the application. The runtime may need internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped; application removal does not remove shared .NET.
-- **MSI:** `NUMA-Control-1.7.3-setup-x64.msi` installs for the current user, normally under `%LOCALAPPDATA%\Programs\NUMA Control`. It requires .NET already installed. Repair, upgrade and uninstall use Windows Installer and preserve user-generated `data`.
-- **Portable:** extract `NUMA-Control-1.7.3-portable-x64.zip` completely to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE and run `Open-NUMA.cmd` or `NUMA-Control.exe`.
+- **Recommended setup:** `NUMA-Control-1.7.4-setup-x64.exe` detects .NET Framework 4.8 or later. If missing, it downloads the official Microsoft prerequisite and installs it before the application. The runtime may need internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped; application removal does not remove shared .NET.
+- **MSI:** `NUMA-Control-1.7.4-setup-x64.msi` installs for the current user, normally under `%LOCALAPPDATA%\Programs\NUMA Control`. It requires .NET already installed. Repair, upgrade and uninstall use Windows Installer and preserve user-generated `data`.
+- **Portable:** extract `NUMA-Control-1.7.4-portable-x64.zip` completely to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE and run `Open-NUMA.cmd` or `NUMA-Control.exe`.
 
 The app and distribution packages currently have no trusted code-signing signature. Compare a download's SHA-256 with `SHA256SUMS.txt` from the same release. Do not disable Windows protection to bypass an organizational policy.
 
@@ -82,6 +82,8 @@ Back up the whole data folder with the app closed, or export profiles in Setting
 A migration card appears only when a previous monitor or shortcut is found. Disabling previous monitoring sends the normal stop signal and backs up recognized shortcuts without deleting old EXEs or enabling new autostart. Unknown shortcut targets require manual handling.
 
 ## Limits and help
+
+NUMA Control's own code and resources use MIT. The distribution includes `LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`. Setup displays the terms for the application and installer components, including the Microsoft .NET prerequisite. [MIT license](https://github.com/mrPortnov/NUMA-Control/blob/main/LICENSE) · [Third-party terms](https://github.com/mrPortnov/NUMA-Control/blob/main/THIRD-PARTY-NOTICES.txt)
 
 Protected or elevated games may reject affinity changes. Match the game's elevation if needed, after exiting the ordinary controller instance. Protection is not bypassed. The app does not inject DLLs or read/modify game memory and does not claim anti-cheat certification.
 

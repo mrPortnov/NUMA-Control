@@ -4,6 +4,15 @@
 
 Downloads and publication dates are available in [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases).
 
+## 1.7.4 — installer, licensing and security checks
+
+- Build MSI and setup.exe with WiX 7.0.1, retaining per-user installation, .NET detection and upgrades from earlier versions.
+- License NUMA Control under MIT and include the license with MSI and portable downloads.
+- Include the installer components' notices and original Microsoft .NET terms.
+- Show license terms and an acceptance option in setup before installation.
+- Analyze C# and GitHub Actions with CodeQL and require successful checks before release packaging.
+- Update the current README links.
+
 ## 1.7.3 — launcher integration
 
 - Launch games through Epic Games, Battle.net and Ubisoft Connect using supported links or game shortcuts.

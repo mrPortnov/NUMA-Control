@@ -18,6 +18,7 @@ try {
     if ($paths.Count -eq 0) { throw 'No repository files to inspect. Use -Worktree before staging the first import.' }
     $documentPaths = @('README.md','README.ru.md','CHANGELOG.md','CHANGELOG.ru.md',
         'NumaControl/README.md','NumaControl/README.ru.md','NumaControl/USER-GUIDE.md','NumaControl/USER-GUIDE.ru.md')
+    $licensePaths = @('LICENSE','THIRD-PARTY-NOTICES.txt')
     $screenshots = @('library-standard','settings-standard','diagnostics-standard','library-light','library-dark','library-bios',
         'profile-editor-standard','cpu-selection-standard')
     $imagePaths = @(foreach ($language in @('en','ru')) {
@@ -26,7 +27,7 @@ try {
     $findings = New-Object 'System.Collections.Generic.List[string]'
     $publicFiles = @{}
     function Test-SourcePath([string]$path) {
-        if ($path -cin $documentPaths -or $path -cin $imagePaths) { return $true }
+        if ($path -cin $documentPaths -or $path -cin $licensePaths -or $path -cin $imagePaths) { return $true }
         if ($path -match '\.md$' -or $path -cnotmatch '^(?:NumaControl/(?:(?:src|tests|installer|assets)/)?[A-Za-z0-9_.-]+|scripts/[A-Za-z0-9_.-]+\.ps1|\.github/(?:workflows/[A-Za-z0-9_.-]+\.yml|dependabot\.yml)|\.githooks/pre-commit|\.gitignore|\.gitattributes)$') {
             $findings.Add($path + ': outside the current application import scope')
             return $false
@@ -55,7 +56,7 @@ try {
         if (-not (Test-SourcePath $path)) { continue }
         $extension = [IO.Path]::GetExtension($path).ToLowerInvariant()
         $binary = $extension -in @('.png', '.bmp', '.ico')
-        if (-not $binary -and $extension -notin @('.md','.cs','.ps1','.cmd','.xaml','.xml','.manifest','.config','.wxs','.svg','.yml','.yaml','.json') -and $path -notin @('.gitignore','.gitattributes','.githooks/pre-commit')) {
+        if (-not $binary -and $extension -notin @('.md','.cs','.ps1','.cmd','.xaml','.xml','.manifest','.config','.wxs','.svg','.yml','.yaml','.json') -and $path -notin (@('.gitignore','.gitattributes','.githooks/pre-commit') + $licensePaths)) {
             $findings.Add($path + ': unreviewed file type')
             continue
         }
@@ -83,13 +84,13 @@ try {
             }
         }
         if ($length -gt 5MB) { $findings.Add($path + ': exceeds the 5 MiB source-file limit'); continue }
-        if ($path -cin ($documentPaths + $imagePaths) -and $length -gt 0) { $publicFiles[$path] = if ($binary) { $true } else { $content } }
+        if ($path -cin ($documentPaths + $licensePaths + $imagePaths) -and $length -gt 0) { $publicFiles[$path] = if ($binary) { $true } else { $content } }
         if ($binary) { continue }
         foreach ($entry in $patterns.GetEnumerator()) {
             if ([regex]::IsMatch($content, $entry.Value)) { $findings.Add($path + ': ' + $entry.Key) }
         }
     }
-    foreach ($path in ($documentPaths + $imagePaths)) {
+    foreach ($path in ($documentPaths + $licensePaths + $imagePaths)) {
         if (-not $publicFiles.ContainsKey($path)) { $findings.Add($path + ': required public file missing or empty') }
     }
     foreach ($path in @('README.md','README.ru.md')) {
