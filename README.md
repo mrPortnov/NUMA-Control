@@ -6,7 +6,7 @@ A Windows desktop application for assigning game processes to selected CPU cores
 
 [Download the latest release](https://github.com/mrPortnov/NUMA-Control/releases/latest) · [User guide](NumaControl/USER-GUIDE.md) · [Release history](CHANGELOG.md) · [Report an issue](https://github.com/mrPortnov/NUMA-Control/issues)
 
-The features and screenshots on this page describe **1.7.3**. For the version you downloaded, use the guide included in the installation folder or portable ZIP. [User guide for 1.6.1](https://github.com/mrPortnov/NUMA-Control/blob/v1.6.1/NumaControl/USER-GUIDE.md)
+The features and screenshots on this page describe **1.7.3**. For the version you downloaded, use the guide included in the installation folder or portable ZIP.
 
 ![NUMA Control game library and CPU selection, standard theme](docs/screenshots/en-library-standard.png)
 
