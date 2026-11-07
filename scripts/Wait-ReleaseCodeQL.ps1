@@ -10,7 +10,7 @@ if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' -or $Commit -notma
     throw 'Supply the GitHub repository and the exact 40-character release commit.'
 }
 $Commit = $Commit.ToLowerInvariant()
-$gh = (Get-Command gh.exe -CommandType Application -ErrorAction Stop).Source
+$gh = (Get-Command gh.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $clock = [Diagnostics.Stopwatch]::StartNew()
 $dispatchHelp = 'Dispatch the CodeQL workflow on a branch whose HEAD matches this commit, then retry release verification.'
 

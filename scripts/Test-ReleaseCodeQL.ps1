@@ -94,9 +94,33 @@ $mockExecutable = Join-Path $artifacts 'gh.exe'
 & (Join-Path $framework 'csc.exe') /nologo /target:exe ("/out:$mockExecutable") /reference:System.Web.Extensions.dll $mockSource > (Join-Path $artifacts 'compiler.log') 2>&1
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $mockExecutable)) { throw 'Cannot compile the isolated GitHub API fixture.' }
 
-$shell = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
+# Keep a second executable in PATH to reproduce hosted runners with GitHub CLI installed.
+$secondaryCli = Join-Path $artifacts 'secondary-cli'
+New-Item -ItemType Directory -Path $secondaryCli | Out-Null
+Copy-Item -LiteralPath $mockExecutable -Destination (Join-Path $secondaryCli 'gh.exe')
+$shell = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $commit = 'a' * 40
 $sentinel = 'MOCK_SECRET_FOR_OUTPUT_CHECK'
+$launcher = Join-Path $artifacts 'Invoke-Fixture.ps1'
+@'
+$ErrorActionPreference = 'Stop'
+$resolved = (Get-Command gh.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+if (-not [string]::Equals($resolved, $env:CODEQL_MOCK_EXECUTABLE, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'CodeQL fixture selected a GitHub CLI outside its isolated directory.'
+}
+Write-Host 'CodeQL fixture resolved the isolated mock CLI.'
+& $env:CODEQL_GATE_HELPER -Repository fixtureOwner/fixtureRepo -Commit ('a' * 40) -TimeoutSeconds ([int]$env:CODEQL_GATE_TIMEOUT)
+'@ | Set-Content -LiteralPath $launcher -Encoding utf8
+
+function Write-SafeFixtureDiagnostic([string]$Text) {
+    $safe = $Text.Replace($sentinel, '[REDACTED]').Replace($artifacts, '[fixture]').Replace($root, '[workspace]')
+    if ($env:USERPROFILE) { $safe = $safe.Replace($env:USERPROFILE, '[profile]') }
+    if ($safe.Length -gt 2048) { $safe = $safe.Substring(0, 2048) + ' [truncated]' }
+    foreach ($line in ($safe -split '\r?\n')) {
+        if ($line) { Write-Host ('CodeQL fixture | ' + $line) }
+    }
+}
+
 $passCases = @('success', 'pending_success', 'old_failure', 'pr_ignored')
 $timeoutCases = @('wrong_sha', 'missing_run', 'pr_only', 'hang')
 $cases = @('success', 'pending_success', 'wrong_sha', 'failure', 'missing_job', 'skipped', 'cancelled', 'missing_run', 'pr_only', 'latest_failure', 'old_failure', 'pr_ignored', 'duplicate_job', 'api_error', 'malformed', 'hang')
@@ -108,21 +132,25 @@ foreach ($case in $cases) {
     $summaryPath = Join-Path $artifacts ($case + '.summary.txt')
     $info = [Diagnostics.ProcessStartInfo]::new()
     $info.FileName = $shell
-    $info.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $helper + '" -Repository fixtureOwner/fixtureRepo -Commit ' + $commit + ' -TimeoutSeconds ' + $timeout
+    $info.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $launcher + '"'
     $info.UseShellExecute = $false
     $info.CreateNoWindow = $true
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
     # Only the child receives a fake CLI and token; the calling session is unchanged.
-    $info.EnvironmentVariables['PATH'] = $artifacts + ';' + $env:PATH
+    $info.EnvironmentVariables['PATH'] = $artifacts + ';' + $secondaryCli + ';' + $env:PATH
     $info.EnvironmentVariables['GH_TOKEN'] = $sentinel
     $info.EnvironmentVariables['GH_DEBUG'] = ''
     $info.EnvironmentVariables['GITHUB_STEP_SUMMARY'] = $summaryPath
     $info.EnvironmentVariables['CODEQL_MOCK_SCENARIO'] = $case
     $info.EnvironmentVariables['CODEQL_MOCK_COUNTER'] = Join-Path $artifacts ($case + '.counter')
+    $info.EnvironmentVariables['CODEQL_MOCK_EXECUTABLE'] = $mockExecutable
+    $info.EnvironmentVariables['CODEQL_GATE_HELPER'] = $helper
+    $info.EnvironmentVariables['CODEQL_GATE_TIMEOUT'] = [string]$timeout
     $process = [Diagnostics.Process]::new()
     $process.StartInfo = $info
     $clock = [Diagnostics.Stopwatch]::StartNew()
+    $output = ''
     try {
         if (-not $process.Start()) { throw 'Cannot start an isolated CodeQL gate test.' }
         $stdout = $process.StandardOutput.ReadToEndAsync()
@@ -150,6 +178,9 @@ foreach ($case in $cases) {
         }
         $results += [pscustomobject]@{ Case = $case; Passed = $true; ExitCode = $process.ExitCode; Seconds = [Math]::Round($clock.Elapsed.TotalSeconds, 2) }
         Write-Host ('PASS CodeQL gate: ' + $case)
+    } catch {
+        Write-SafeFixtureDiagnostic $output
+        throw
     } finally { $process.Dispose() }
 }
 $results | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $artifacts 'results.json') -Encoding utf8
