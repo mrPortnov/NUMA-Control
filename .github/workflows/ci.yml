@@ -56,6 +56,10 @@ jobs:
         if: env.VERIFY_RELEASE != 'true'
         shell: powershell
         run: ./scripts/Test-VisualResults.ps1 -Path ./NumaControl/tests/artifacts/latest-results.json
+      - name: Verify actual application startup and idle resources
+        if: env.VERIFY_RELEASE != 'true'
+        shell: powershell
+        run: ./NumaControl/tests/Check-Launch.ps1 -MeasureSeconds 15
       - name: Require CodeQL for the exact release commit
         if: env.VERIFY_RELEASE == 'true'
         shell: powershell
