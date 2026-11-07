@@ -6,7 +6,7 @@
 
 [Скачать актуальную версию](https://github.com/mrPortnov/NUMA-Control/releases/latest) · [Руководство пользователя](NumaControl/USER-GUIDE.ru.md) · [История изменений](CHANGELOG.ru.md) · [Сообщить о проблеме](https://github.com/mrPortnov/NUMA-Control/issues)
 
-Возможности и скриншоты на этой странице относятся к **1.7.3**. Руководство для скачанной версии находится в папке установленной программы или в архиве portable. [Руководство для 1.6.1](https://github.com/mrPortnov/NUMA-Control/blob/v1.6.1/NumaControl/USER-GUIDE.ru.md)
+Возможности и скриншоты на этой странице относятся к **1.7.3**. Руководство для скачанной версии находится в папке установленной программы или в архиве portable.
 
 ![Библиотека и карта процессора NUMA Control, стандартная тема](docs/screenshots/ru-library-standard.png)
 
