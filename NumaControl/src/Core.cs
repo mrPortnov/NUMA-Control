@@ -423,7 +423,7 @@ namespace NumaControl
                     if ((game.CpuMask & ~topology.AllMask) != 0) { status.State = L10n.T("Проверьте ядра"); status.Detail = L10n.T("В профиле есть ЦП, недоступные на этом компьютере."); status.Error = true; continue; }
                     Process[] candidates;
                     if (!processes.TryGetValue(game.ProcessName, out candidates)) { candidates = snapshot.Find(game.ProcessName); processes.Add(game.ProcessName, candidates); }
-                    bool useCpuSets = LauncherTargets.IsFortniteProcess(game.ProcessName);
+                    bool useCpuSets = CpuSets.IsUsedForProcess(game.ProcessName);
                     List<string> errors = new List<string>();
                     foreach (Process process in candidates)
                     {
@@ -500,7 +500,7 @@ namespace NumaControl
                     }
                     else if (status.Running > 0)
                     {
-                        status.State = L10n.T(useCpuSets ? "Набор CPU Sets настроен" : "Правило применено");
+                        status.State = L10n.T("Правило применено");
                         status.Detail = "PID " + string.Join(", ", status.Pids) + (useCpuSets ? " · Windows CPU Sets 0x" : L10n.T(" · маска 0x")) +
                             game.Mask + (game.HighPriority ? L10n.T(" · высокий приоритет") : "") + L10n.T(" · автоматическое восстановление");
                     }

@@ -59,50 +59,70 @@ Check ($layoutLog -match 'https://go\.microsoft\.com/fwlink/\?LinkId=2085155') '
 $registry=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry32)
 try{$key=$registry.OpenSubKey('SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full');try{$installedRelease=if($key){[int]$key.GetValue('Release',0)}else{0}}finally{if($key){$key.Dispose()}}}finally{$registry.Dispose()}
 Check ($installedRelease -ge 528040) 'host has .NET 4.8+, so the live install test will not replace the system runtime'
-$isolatedMsi=Join-Path $run 'isolated.msi';$isolatedSetup=Join-Path $run 'isolated-setup.exe';$isolatedDirectory=Join-Path $run 'installation'
-$legacyMsi=Join-Path $run 'legacy.msi';$legacySetup=Join-Path $run 'legacy-setup.exe'
-$fixtureSource=Join-Path $run 'legacy.cs';$fixtureExe=Join-Path $run 'legacy.exe'
-[IO.File]::WriteAllText($fixtureSource,'[assembly: System.Reflection.AssemblyFileVersion("1.7.0.0")] static class LegacyFixture { static void Main() {} }')
-& (Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe') /nologo /target:winexe /platform:x64 "/out:$fixtureExe" $fixtureSource
-if($LASTEXITCODE -ne 0){throw 'Cannot compile the isolated older application fixture.'}
-& (Join-Path $project 'Build-Installer.ps1') -ProductVersion '1.7.0' -OutputPath $legacyMsi -IsolationId $id -FixtureExe $fixtureExe
-& (Join-Path $project 'Build-Bootstrapper.ps1') -ProductVersion '1.7.0' -MsiPath $legacyMsi -OutputPath $legacySetup -IsolationId $id -IsolationDirectory $isolatedDirectory -LegacyMsiEntry
-& (Join-Path $project 'Build-Installer.ps1') -ProductVersion $version -OutputPath $isolatedMsi -IsolationId $id
-& (Join-Path $project 'Build-Bootstrapper.ps1') -ProductVersion $version -MsiPath $isolatedMsi -OutputPath $isolatedSetup -IsolationId $id -IsolationDirectory $isolatedDirectory
-$legacyProduct=(Get-Content -LiteralPath ($legacyMsi+'.json') -Raw|ConvertFrom-Json).ProductCode
-$currentProduct=(Get-Content -LiteralPath ($isolatedMsi+'.json') -Raw|ConvertFrom-Json).ProductCode
-$installed=$false;$legacyInstalled=$false
-try{
- $legacyLog=Join-Path $run 'legacy-install.log'
- Run-Setup $legacySetup @('/install') $legacyLog;$legacyInstalled=$true
- $legacyBundle=Read-BundleId $legacyLog
- $legacyBundleEntry=Read-UninstallEntry $legacyBundle
- $legacyMsiEntry=Read-UninstallEntry $legacyProduct
- Check ($legacyBundleEntry -and -not $legacyBundleEntry.Hidden -and $legacyMsiEntry -and -not $legacyMsiEntry.Hidden) 'older setup reproduces two visible uninstall entries'
- $installedExe=Join-Path $isolatedDirectory 'app\NUMA-Control.exe'
- Check ((Get-FileHash -LiteralPath $installedExe).Hash -eq (Get-FileHash -LiteralPath $fixtureExe).Hash) 'older setup installs the distinct 1.7.0 executable'
- $data=Join-Path $isolatedDirectory 'app\data';[void](New-Item -ItemType Directory -Path $data -Force)
- $savedData=Join-Path $data 'preserved.json'
- [IO.File]::WriteAllText($savedData,'{"fixture":true}')
- $currentLog=Join-Path $run 'install.log'
- Run-Setup $isolatedSetup @('/install') $currentLog;$installed=$true
- $currentBundle=Read-BundleId $currentLog
- Check ((Get-FileHash -LiteralPath $installedExe).Hash -eq (Get-FileHash -LiteralPath (Join-Path $project 'NUMA-Control.exe')).Hash) 'setup upgrades to the exact tested application EXE'
- Check ((Get-Content -LiteralPath $savedData -Raw) -eq '{"fixture":true}') 'setup upgrade preserves user-generated data'
- Check (-not (Read-UninstallEntry $legacyBundle) -and -not (Read-UninstallEntry $legacyProduct)) 'setup upgrade removes both older uninstall entries'
- $legacyInstalled=$false
- $currentBundleEntry=Read-UninstallEntry $currentBundle
- $currentMsiEntry=Read-UninstallEntry $currentProduct
- Check ($currentBundleEntry -and -not $currentBundleEntry.Hidden -and $currentMsiEntry -and $currentMsiEntry.Hidden) 'setup registers one visible entry and keeps the chained MSI hidden'
- Check (@(Get-ChildItem -LiteralPath (Join-Path $isolatedDirectory 'menu') -Filter '*.lnk' -File).Count -eq 1) 'setup keeps the launch shortcut and removes the MSI-only uninstall shortcut'
- $installLog=[IO.File]::ReadAllText((Join-Path $run 'install.log'))
- Check ($installLog -match 'Detected package: NetFx48Web, state: Present' -and $installLog -notmatch 'Applying execute package: NetFx48Web') 'normal installation skips prerequisite download/installation when .NET is present'
- Run-Setup $isolatedSetup @('/uninstall') (Join-Path $run 'uninstall.log');$installed=$false
- Check (-not(Test-Path -LiteralPath $installedExe)) 'setup uninstall removes its isolated application files'
- Check (-not (Read-UninstallEntry $currentBundle) -and -not (Read-UninstallEntry $currentProduct)) 'setup uninstall removes the bundle and MSI registrations'
- Check (Test-Path -LiteralPath $savedData) 'setup uninstall preserves user-generated data'
-}finally{
- if($installed){Run-Setup $isolatedSetup @('/uninstall') (Join-Path $run 'cleanup.log')}
- if($legacyInstalled){Run-Setup $legacySetup @('/uninstall') (Join-Path $run 'legacy-cleanup.log')}
+function Test-SetupUpgrade([string]$previousVersion, [bool]$legacyMsiVisible) {
+    $case = Join-Path $run ('upgrade-' + $previousVersion)
+    [void](New-Item -ItemType Directory -Path $case)
+    $caseId = [Guid]::NewGuid().ToString('N')
+    $label = "setup $previousVersion to ${version}: "
+    $isolatedMsi = Join-Path $case 'isolated.msi'
+    $isolatedSetup = Join-Path $case 'isolated-setup.exe'
+    $isolatedDirectory = Join-Path $case 'installation'
+    $previousMsi = Join-Path $case 'previous.msi'
+    $previousSetup = Join-Path $case 'previous-setup.exe'
+    $fixtureSource = Join-Path $case 'previous.cs'
+    $fixtureExe = Join-Path $case 'previous.exe'
+    $fixture = '[assembly: System.Reflection.AssemblyFileVersion("{0}.0")] static class PreviousFixture {{ static void Main() {{}} }}' -f $previousVersion
+    [IO.File]::WriteAllText($fixtureSource, $fixture)
+    & (Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe') /nologo /target:winexe /platform:x64 "/out:$fixtureExe" $fixtureSource
+    if ($LASTEXITCODE -ne 0) { throw ($label + 'could not compile the older application fixture') }
+    & (Join-Path $project 'Build-Installer.ps1') -ProductVersion $previousVersion -OutputPath $previousMsi -IsolationId $caseId -FixtureExe $fixtureExe
+    & (Join-Path $project 'Build-Bootstrapper.ps1') -ProductVersion $previousVersion -MsiPath $previousMsi -OutputPath $previousSetup -IsolationId $caseId -IsolationDirectory $isolatedDirectory -LegacyMsiEntry:$legacyMsiVisible
+    & (Join-Path $project 'Build-Installer.ps1') -ProductVersion $version -OutputPath $isolatedMsi -IsolationId $caseId
+    & (Join-Path $project 'Build-Bootstrapper.ps1') -ProductVersion $version -MsiPath $isolatedMsi -OutputPath $isolatedSetup -IsolationId $caseId -IsolationDirectory $isolatedDirectory
+    $previousProduct = (Get-Content -LiteralPath ($previousMsi + '.json') -Raw | ConvertFrom-Json).ProductCode
+    $currentProduct = (Get-Content -LiteralPath ($isolatedMsi + '.json') -Raw | ConvertFrom-Json).ProductCode
+    $installed = $false
+    $previousInstalled = $false
+    try {
+        $previousLog = Join-Path $case 'previous-install.log'
+        Run-Setup $previousSetup @('/install') $previousLog
+        $previousInstalled = $true
+        $previousBundle = Read-BundleId $previousLog
+        $previousBundleEntry = Read-UninstallEntry $previousBundle
+        $previousMsiEntry = Read-UninstallEntry $previousProduct
+        $expectedEntries = if ($legacyMsiVisible) { 'two visible uninstall entries' } else { 'one visible entry and a hidden MSI' }
+        Check ($previousBundleEntry -and -not $previousBundleEntry.Hidden -and $previousMsiEntry -and
+            $previousMsiEntry.Hidden -eq (-not $legacyMsiVisible)) ($label + 'older setup starts with ' + $expectedEntries)
+        $installedExe = Join-Path $isolatedDirectory 'app\NUMA-Control.exe'
+        Check ((Get-FileHash -LiteralPath $installedExe).Hash -eq (Get-FileHash -LiteralPath $fixtureExe).Hash) ($label + 'older setup installs its distinct executable')
+        $data = Join-Path $isolatedDirectory 'app\data'
+        [void](New-Item -ItemType Directory -Path $data)
+        $savedData = Join-Path $data 'preserved.json'
+        [IO.File]::WriteAllText($savedData, '{"fixture":true}')
+        $currentLog = Join-Path $case 'install.log'
+        Run-Setup $isolatedSetup @('/install') $currentLog
+        $installed = $true
+        $currentBundle = Read-BundleId $currentLog
+        Check ((Get-FileHash -LiteralPath $installedExe).Hash -eq (Get-FileHash -LiteralPath (Join-Path $project 'NUMA-Control.exe')).Hash) ($label + 'setup upgrades to the exact tested application EXE')
+        Check ((Get-Content -LiteralPath $savedData -Raw) -eq '{"fixture":true}') ($label + 'setup upgrade preserves user-generated data')
+        Check (-not (Read-UninstallEntry $previousBundle) -and -not (Read-UninstallEntry $previousProduct)) ($label + 'setup upgrade removes both older registrations')
+        $previousInstalled = $false
+        $currentBundleEntry = Read-UninstallEntry $currentBundle
+        $currentMsiEntry = Read-UninstallEntry $currentProduct
+        Check ($currentBundleEntry -and -not $currentBundleEntry.Hidden -and $currentMsiEntry -and $currentMsiEntry.Hidden) ($label + 'setup registers one visible entry and keeps the chained MSI hidden')
+        Check (@(Get-ChildItem -LiteralPath (Join-Path $isolatedDirectory 'menu') -Filter '*.lnk' -File).Count -eq 1) ($label + 'setup leaves only the application launch shortcut')
+        $installLog = [IO.File]::ReadAllText($currentLog)
+        Check ($installLog -match 'Detected package: NetFx48Web, state: Present' -and $installLog -notmatch 'Applying execute package: NetFx48Web') ($label + 'setup skips the .NET download and installation when it is present')
+        Run-Setup $isolatedSetup @('/uninstall') (Join-Path $case 'uninstall.log')
+        $installed = $false
+        Check (-not (Test-Path -LiteralPath $installedExe)) ($label + 'setup uninstall removes its isolated application files')
+        Check (-not (Read-UninstallEntry $currentBundle) -and -not (Read-UninstallEntry $currentProduct)) ($label + 'setup uninstall removes the bundle and MSI registrations')
+        Check (Test-Path -LiteralPath $savedData) ($label + 'setup uninstall preserves user-generated data')
+    } finally {
+        if ($installed) { Run-Setup $isolatedSetup @('/uninstall') (Join-Path $case 'cleanup.log') }
+        if ($previousInstalled) { Run-Setup $previousSetup @('/uninstall') (Join-Path $case 'previous-cleanup.log') }
+    }
 }
+Test-SetupUpgrade '1.7.0' $true
+Test-SetupUpgrade '1.7.2' $false
 [pscustomobject]@{Version=$version;SetupSha256=(Get-FileHash -LiteralPath $SetupPath).Hash;Passed=$checks.Count;Checks=$checks.ToArray();MissingRuntimeInstallation='Detection boundaries and download verified; actual installation on a clean Windows without .NET requires a separate VM.'}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $PSScriptRoot 'artifacts\bootstrapper-results.json') -Encoding UTF8

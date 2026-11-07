@@ -53,7 +53,6 @@ namespace NumaControl
             launchOptions.Children.Add(Ui.Button(L10n.T("Взять цель из ярлыка"), BrowseLauncherShortcut, false, "BrowseLauncherShortcut"));
             body.Children.Add(launchOptions);
             body.Children.Add(Ui.Text(L10n.T("Для Epic Games, Battle.net и Ubisoft Connect выберите ярлык игры. Выше укажите процесс самой игры."), 11, "#949DB1"));
-            body.Children.Add(Ui.Text(L10n.T("Для Fortnite можно оставить цель запуска пустой. NUMA Control найдёт ссылку Epic автоматически."), 11, "#949DB1"));
             arguments = Field(body, L10n.T("Аргументы запуска · только для EXE"), game == null ? "" : game.Arguments);
             name.Name = "GameNameInput"; process.Name = "ProcessNameInput"; path.Name = "GamePathInput"; launch.Name = "LaunchTargetInput"; arguments.Name = "ArgumentsInput";
             enabled = new CheckBox { Content = L10n.T("Автоматически следить за этой игрой"), IsChecked = game == null || game.Enabled, Margin = new Thickness(0, 17, 0, 9), Style = (Style)Application.Current.FindResource("Switch") }; body.Children.Add(enabled);
@@ -113,7 +112,7 @@ namespace NumaControl
             bool followName = string.IsNullOrWhiteSpace(name.Text) || name.Text == process.Text;
             path.Text = executable; process.Text = Path.GetFileNameWithoutExtension(executable);
             if (followName) name.Text = process.Text;
-            if (followLaunch) launch.Text = LauncherTargets.IsFortniteProcess(process.Text) ? "" : executable;
+            if (followLaunch) launch.Text = executable;
         }
         private void PickProcess()
         {

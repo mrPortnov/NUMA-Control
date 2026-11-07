@@ -47,39 +47,24 @@ namespace NumaControl
             Check(launch != null && launch.UseShellExecute && launch.FileName == fixture && launch.Arguments == imported.Arguments && launch.WorkingDirectory == imported.Directory,
                 "imported launcher shortcut keeps its launch settings after restart");
 
-            string install = Path.Combine(folder, "Fortnite");
-            string binary = Path.Combine(install, @"FortniteGame\Binaries\Win64\FortniteClient-Win64-Shipping.exe");
-            Directory.CreateDirectory(Path.GetDirectoryName(binary));
+            string binary = Path.Combine(folder, "FortniteClient-Win64-Shipping.exe");
             File.Copy(fixture, binary);
-            File.WriteAllText(Path.Combine(folder, "broken.item"), "{");
-            File.WriteAllText(Path.Combine(folder, "Fortnite.item"), ProfileStore.Serializer().Serialize(new {
-                AppName = "Fortnite", InstallLocation = install, CatalogNamespace = "fn", CatalogItemId = "example",
-                LaunchExecutable = "FortniteGame/Binaries/Win64/FortniteBootstrapper.exe"
-            }));
-            GameProfile fortnite = LauncherTargets.FindFortnite(folder, null);
-            Check(fortnite != null && fortnite.ExePath == binary && fortnite.ProcessName == "FortniteClient-Win64-Shipping" && fortnite.LaunchTarget == epic,
-                "Fortnite uses the game client for matching and the Epic URI for launching");
-            var saved = new GameProfile { ProcessName = fortnite.ProcessName, ExePath = binary };
+            var fortnite = new GameProfile { ProcessName = Path.GetFileNameWithoutExtension(binary), ExePath = binary };
             Func<ProcessStartInfo, Process> capture = info => { launch = info; return null; };
             foreach (string target in new[] { "", binary })
             {
-                saved.LaunchTarget = target;
+                fortnite.LaunchTarget = target;
                 launch = null;
-                GameLauncher.Launch(saved, topology.AllMask, capture, folder);
-                Check(launch != null && launch.UseShellExecute && launch.FileName == epic && saved.LaunchTarget == target,
-                    "Fortnite launch uses Epic for empty and legacy direct targets without rewriting the profile");
+                GameLauncher.Launch(fortnite, topology.AllMask, capture);
+                Check(launch != null && !launch.UseShellExecute && launch.FileName == binary && fortnite.LaunchTarget == target,
+                    "Fortnite uses the same EXE fallback as other profiles");
             }
-            saved.LaunchTarget = epic.Replace("example", "explicit");
-            GameLauncher.Launch(saved, topology.AllMask, capture, folder);
-            Check(launch.FileName == saved.LaunchTarget, "Fortnite keeps an explicitly selected launch link");
-
-            saved.LaunchTarget = "";
-            saved.ExePath = Path.Combine(folder, Path.GetFileName(binary));
-            File.Copy(fixture, saved.ExePath);
+            File.WriteAllText(shortcut, "[InternetShortcut]\r\nURL=" + epic + "\r\n");
+            fortnite.LaunchTarget = LauncherTargets.ReadShortcut(shortcut).Target;
             launch = null;
-            Reject(() => GameLauncher.Launch(saved, topology.AllMask, capture, folder),
-                "Fortnite does not choose Epic metadata for a different installation");
-            Check(launch == null, "Fortnite does not silently fall back to starting the client EXE");
+            GameLauncher.Launch(fortnite, topology.AllMask, capture);
+            Check(launch != null && launch.UseShellExecute && launch.FileName == epic && fortnite.ExePath == binary,
+                "Fortnite uses an imported Epic shortcut without changing the monitored game EXE");
             FortniteCpuSetChecks(topology, binary);
         }
 
@@ -99,7 +84,7 @@ namespace NumaControl
                     ulong hardMask = Native.ReadMask(handle);
                     uint priority = Native.ReadPriority(handle);
                     GameStatus status = engine.Scan(config)[profile.Id];
-                    Check(status.Running == 1 && status.Applied == 1 && status.State == L10n.T("Набор CPU Sets настроен"),
+                    Check(status.Running == 1 && status.Applied == 1 && status.State == L10n.T("Правило применено") && status.Detail.Contains("Windows CPU Sets 0x"),
                         "Fortnite's matched process is confirmed using Windows CPU Sets");
                     Check(CpuSets.Matches(handle, CpuSets.Select(handle, chosen)) && Native.ReadMask(handle) == hardMask && Native.ReadPriority(handle) == priority,
                         "Windows confirms selected default CPU Sets independently of hard affinity and priority");

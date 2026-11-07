@@ -223,11 +223,25 @@ namespace NumaControl
                     Press(editor, "BrowseGameExe");
                     Check(Control<TextBox>(editor, "GamePathInput").Text == gamePath &&
                         Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(client) &&
-                        Control<TextBox>(editor, "LaunchTargetInput").Text == "",
-                        "the normal game editor leaves the Fortnite launch target automatic");
-                    Press(editor, "CancelProfile");
+                        Control<TextBox>(editor, "LaunchTargetInput").Text == gamePath,
+                        "the normal game editor uses the EXE as the default launch target for Fortnite");
+                    const string epicUri = "com.epicgames.launcher://apps/Example?action=launch";
+                    File.WriteAllText(launcherLink, "[InternetShortcut]\r\nURL=" + epicUri + "\r\n");
+                    interaction.OpenPaths.Enqueue(launcherLink); Press(editor, "BrowseLauncherShortcut");
+                    Check(Control<TextBox>(editor, "GamePathInput").Text == gamePath &&
+                        Control<TextBox>(editor, "LaunchTargetInput").Text == epicUri,
+                        "Fortnite uses the standard shortcut picker without changing the monitored EXE");
+                    Control<TextBox>(editor, "GameNameInput").Text = "CPU Sets fixture";
+                    Press(editor, "SaveProfile");
                 });
                 Press(w, "AddGame");
+                var cpuSetsTip = (ToolTip)Control<Border>(w, "CpuModeInfo").ToolTip;
+                Check(controller.Config.Games.Count == 4 && (string)cpuSetsTip.DataContext == L10n.T("Режим профиля · CPU Sets"),
+                    "selecting the Fortnite profile shows CPU Sets as its assignment mode");
+                interaction.Editors.Enqueue(editor => { interaction.Answers.Enqueue(MessageBoxResult.OK); Press(editor, "DeleteProfile"); });
+                Press(w, "EditGame");
+                Check(controller.Config.Games.Count == 3 && (string)cpuSetsTip.DataContext == L10n.T("Режим профиля · жёсткая маска"),
+                    "switching back to an ordinary profile restores the hard affinity explanation");
                 interaction.Editors.Enqueue(editor => { interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseGameExe"); Check(Control<TextBox>(editor, "GamePathInput").Text == fixture, "browse game fills exact path"); Check(Control<TextBox>(editor, "ProcessNameInput").Text == Path.GetFileNameWithoutExtension(fixture), "browse game derives process name"); Control<TextBox>(editor, "GameNameInput").Text = "Тест игрового профиля"; interaction.OpenPaths.Enqueue(fixture); Press(editor, "BrowseLaunchExe"); Press(editor, "SaveProfile"); });
                 Press(w, "AddGame"); Check(controller.Config.Games.Count == 4 && Control<TextBlock>(w, "SelectedName").Text == "Тест игрового профиля", "add via EXE creates and selects persisted profile");
                 string fixtureId = controller.Config.Games.Last().Id;
@@ -337,24 +351,42 @@ namespace NumaControl
         }
         private static void Capture(Window window, string name)
         {
-            window.UpdateLayout(); FrameworkElement surface = (FrameworkElement)window.Content;
+            window.UpdateLayout();
+            CaptureVisual((FrameworkElement)window.Content, name, (Brush)Application.Current.FindResource("Bg"));
+        }
+        private static void CaptureVisual(FrameworkElement surface, string name, Brush backgroundBrush = null)
+        {
             double width = surface.ActualWidth + surface.Margin.Left + surface.Margin.Right, height = surface.ActualHeight + surface.Margin.Top + surface.Margin.Bottom;
             var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
-            var background = new DrawingVisual(); using (DrawingContext drawing = background.RenderOpen()) drawing.DrawRectangle((Brush)Application.Current.FindResource("Bg"), null, new Rect(0, 0, width, height));
-            bitmap.Render(background); bitmap.Render(surface); var png = new System.Windows.Media.Imaging.PngBitmapEncoder(); png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            if (backgroundBrush != null)
+            {
+                var background = new DrawingVisual();
+                using (DrawingContext drawing = background.RenderOpen()) drawing.DrawRectangle(backgroundBrush, null, new Rect(0, 0, width, height));
+                bitmap.Render(background);
+            }
+            bitmap.Render(surface); var png = new System.Windows.Media.Imaging.PngBitmapEncoder(); png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
             string directory = Path.Combine(root, "visuals"); Directory.CreateDirectory(directory); using (FileStream file = File.Create(Path.Combine(directory, name + ".png"))) png.Save(file);
         }
         private static void VisualMatrix(Application app, Window w, AppController controller, ScriptedInteraction interaction, string prefix = "")
         {
             foreach (Size size in new[] { new Size(960, 650), new Size(1220, 870), new Size(1440, 960) })
             {
+                bool localized = prefix.Length != 0;
+                string scenario = L10n.Current + "/" + Themes.Current + "/" + (int)size.Width + "x" + (int)size.Height;
                 w.Width = size.Width; w.Height = size.Height; Pump(); Press(w, "LibraryNav");
                 Control<ScrollViewer>(w, "LibraryView").ScrollToTop(); Pump(); Capture(w, prefix + "library-" + (int)size.Width);
+                if (localized)
+                {
+                    CheckWindowChrome(w, scenario);
+                    CheckPageHeading(w, scenario + "/library");
+                    CheckLibraryVisuals(w, scenario + "/library");
+                }
                 TextBlock cpu = Control<TextBlock>(w, "ProcessorName"), mask = Control<TextBlock>(w, "MaskLabel");
                 Point a = cpu.TranslatePoint(new Point(0, 0), w), b = mask.TranslatePoint(new Point(0, 0), w);
                 Check(a.Y >= b.Y + mask.ActualHeight - 1 || a.X + cpu.ActualWidth <= b.X + 1, "processor name and mask never overlap at width " + size.Width);
                 Control<ScrollViewer>(w, "LibraryView").ScrollToEnd(); Pump(); Check(Control<Button>(w, "SaveMask").TransformToAncestor(w).TransformBounds(new Rect(0, 0, Control<Button>(w, "SaveMask").ActualWidth, Control<Button>(w, "SaveMask").ActualHeight)).Bottom < w.ActualHeight, "save action remains reachable by scrolling at width " + size.Width);
                 ScrollViewer viewer = Control<ScrollViewer>(w, "LibraryView");
+                if (localized) CheckFullyVisible(Control<Button>(w, "SaveMask"), Viewport(viewer), scenario + "/library");
                 if (viewer.ScrollableHeight > 0)
                 {
                     viewer.ScrollToTop(); Pump(); ScrollBar bar = Descendants(viewer).OfType<ScrollBar>().First(s => s.Orientation == Orientation.Vertical && s.Maximum > 0);
@@ -369,22 +401,36 @@ namespace NumaControl
                     ScrollViewer page = nav == "LogNav" ? null : Control<ScrollViewer>(w, nav == "SettingsNav" ? "SettingsView" : "DiagnosticsView");
                     if (page != null) { page.ScrollToTop(); Pump(); }
                     Capture(w, prefix + nav + "-" + (int)size.Width);
+                    if (localized) CheckSecondaryPage(w, nav, scenario + "/" + nav);
                     if (page != null) { page.ScrollToEnd(); Pump(); Capture(w, prefix + nav + "-bottom-" + (int)size.Width); }
                 }
+                if (localized) visualCases.Add(scenario);
             }
             w.Width = 1220; w.Height = 870; Press(w, "LibraryNav");
+            Exception editorFailure = null;
             interaction.Editors.Enqueue(editor => {
-                Capture(editor, prefix + "profile-editor");
-                CheckBox priority = Control<CheckBox>(editor, "HighPriorityToggle"); priority.BringIntoView(); Pump();
-                Capture(editor, prefix + "profile-editor-bottom");
-                foreach (string label in new[] { "Название в библиотеке", "Имя процесса без .exe", "Точный путь к EXE игры · можно оставить пустым", "Цель запуска · EXE или ссылка лаунчера", "Аргументы запуска · только для EXE" })
+                try
                 {
-                    TextBlock caption = Descendants(editor).OfType<TextBlock>().Single(text => text.Text == L10n.T(label));
-                    Check(Contrast(((SolidColorBrush)caption.Foreground).Color.ToString(), ((SolidColorBrush)editor.Background).Color.ToString()) >= 4.5, "profile field label has readable contrast / " + prefix + " / " + L10n.T(label));
+                    if (prefix.Length != 0)
+                    {
+                        editor.Width = editor.MinWidth; editor.Height = editor.MinHeight; Pump();
+                        CheckProfileEditorVisuals(editor, L10n.Current + "/" + Themes.Current + "/profile editor");
+                    }
+                    Capture(editor, prefix + "profile-editor");
+                    CheckBox priority = Control<CheckBox>(editor, "HighPriorityToggle"); priority.BringIntoView(); Pump();
+                    Capture(editor, prefix + "profile-editor-bottom");
+                    foreach (string label in new[] { "Название в библиотеке", "Имя процесса без .exe", "Точный путь к EXE игры · можно оставить пустым", "Цель запуска · EXE или ссылка лаунчера", "Аргументы запуска · только для EXE" })
+                    {
+                        TextBlock caption = Descendants(editor).OfType<TextBlock>().Single(text => text.Text == L10n.T(label));
+                        Check(Contrast(((SolidColorBrush)caption.Foreground).Color.ToString(), ((SolidColorBrush)editor.Background).Color.ToString()) >= 4.5, "profile field label has readable contrast / " + prefix + " / " + L10n.T(label));
+                    }
+                    Check(priority.TransformToAncestor(editor).TransformBounds(new Rect(0, 0, priority.ActualWidth, priority.ActualHeight)).Bottom < editor.ActualHeight, "profile priority option remains reachable by scrolling / " + prefix);
+                    Press(editor, "CancelProfile");
                 }
-                Check(priority.TransformToAncestor(editor).TransformBounds(new Rect(0, 0, priority.ActualWidth, priority.ActualHeight)).Bottom < editor.ActualHeight, "profile priority option remains reachable by scrolling / " + prefix);
-                Press(editor, "CancelProfile");
+                catch (Exception error) { editorFailure = error; throw; }
             }); Press(w, "EditGame");
+            // AppController handles errors from UI actions, so propagate failures from the scripted modal explicitly.
+            if (editorFailure != null) throw new InvalidOperationException("Profile editor visual checks failed.", editorFailure);
             interaction.Pickers.Enqueue(picker => { Capture(picker, prefix + "process-picker"); Press(picker, "CancelProcess"); });
             interaction.Editors.Enqueue(editor => { Press(editor, "ChooseProcess"); Press(editor, "CancelProfile"); }); Press(w, "AddGame");
             AppDialog dialog = new AppDialog(w, L10n.T("Выбор ЦП доступен в карточке игры после сохранения. Выключение наблюдателя или удаление профиля не меняет уже назначенную маску процесса."), L10n.T("Проверьте параметры"), MessageBoxButton.OKCancel, MessageBoxImage.Warning);

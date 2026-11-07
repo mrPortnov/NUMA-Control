@@ -1,20 +1,20 @@
-# NUMA Control 1.7.1 — краткая справка
+# NUMA Control 1.7.3 — краткая справка
 
 **[English](README.md) · [Русский](README.ru.md)**
 
 NUMA Control назначает игровым процессам выбранные ядра через штатные API CPU affinity Windows. В программе есть профили, выбор физических ядер и SMT-потоков, фоновое наблюдение, трей, четыре темы и локальная диагностика. Привязка не гарантирует рост FPS: сравнивайте время кадра и стабильность в своих играх.
 
-> **Совместимость с античитами:** Жёсткая привязка и приоритет проверены только с Valve Anti-Cheat (VAC). Для Fortnite отдельно проверены запуск через Epic и Windows CPU Sets при активном Easy Anti-Cheat. В повышении приоритета Windows отказала.
+> **Совместимость с античитами.** Жёсткая привязка и приоритет проверены только с Valve Anti-Cheat (VAC). В отдельной проверке Fortnite при активном Easy Anti-Cheat игра запустилась через Epic и Windows применила CPU Sets. В повышении приоритета Windows отказала.
 
-NUMA Control использует штатные Windows API для получения сведений о процессах и изменения CPU affinity ([SetProcessAffinityMask](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask)), а при включённой опции — приоритета ([SetPriorityClass](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)). Программа не внедряет DLL или код, не читает и не изменяет игровую память, не исправляет файлы игры и не обходит античит. Для этих операций Windows она открывает дескрипторы процессов; это не означает одобрения со стороны разработчика античита.
+NUMA Control использует штатные Windows API для получения сведений о процессах, назначения жёсткой привязки или CPU Sets и запроса высокого приоритета. Программа открывает дескрипторы процессов для этих операций, не внедряет код, не читает и не изменяет память игры, не правит её файлы и не обходит античит. [Привязка ЦП в Windows](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask) · [Windows CPU Sets](https://learn.microsoft.com/en-us/windows/win32/procthread/cpu-sets) · [Приоритет процесса](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setpriorityclass)
 
 ## Установка и запуск
 
 Требуются Windows 10/11 x64, .NET Framework 4.8 и одна группа из 1–64 логических ЦП.
 
-- **Рекомендуемый setup:** `NUMA-Control-1.7.1-setup-x64.exe` определяет .NET Framework 4.8 или новее. При отсутствии скачивает официальный компонент Microsoft и устанавливает его перед приложением. Для runtime могут понадобиться Интернет, подтверждение администратора и перезагрузка. Имеющаяся 4.8/4.8.1 пропускается; общий .NET при удалении программы сохраняется.
-- **MSI:** `NUMA-Control-1.7.1-setup-x64.msi` устанавливает программу для текущего пользователя, обычно в `%LOCALAPPDATA%\Programs\NUMA Control`. Требует уже установленный .NET. Обновление, восстановление и удаление обслуживает Windows Installer, сохраняя пользовательскую папку `data`.
-- **Portable:** полностью распакуйте `NUMA-Control-1.7.1-portable-x64.zip` в постоянную доступную для записи папку. Сохраните `NUMA-Control.exe.config` рядом с EXE и запустите `Open-NUMA.cmd` или `NUMA-Control.exe`.
+- **Рекомендуемый setup:** `NUMA-Control-1.7.3-setup-x64.exe` определяет .NET Framework 4.8 или новее. При отсутствии скачивает официальный компонент Microsoft и устанавливает его перед приложением. Для runtime могут понадобиться Интернет, подтверждение администратора и перезагрузка. Имеющаяся 4.8/4.8.1 пропускается; общий .NET при удалении программы сохраняется.
+- **MSI:** `NUMA-Control-1.7.3-setup-x64.msi` устанавливает программу для текущего пользователя, обычно в `%LOCALAPPDATA%\Programs\NUMA Control`. Требует уже установленный .NET. Обновление, восстановление и удаление обслуживает Windows Installer, сохраняя пользовательскую папку `data`.
+- **Portable:** полностью распакуйте `NUMA-Control-1.7.3-portable-x64.zip` в постоянную доступную для записи папку. Сохраните `NUMA-Control.exe.config` рядом с EXE и запустите `Open-NUMA.cmd` или `NUMA-Control.exe`.
 
 Программа и дистрибутивы пока не подписаны доверенным сертификатом. Сверьте SHA-256 скачанного файла с `SHA256SUMS.txt` того же релиза. Не отключайте защиту Windows для обхода корпоративной политики.
 
@@ -32,7 +32,7 @@ NUMA Control использует штатные Windows API для получе
 
 Примеры: `cs2.exe`, `dota2.exe`, `Game.exe`. Для запуска Steam подходят `steam://rungameid/730` и `steam://rungameid/570`; также поддерживается `astrumplay://play/0.1177`. EXE для сопоставления игры и цель запуска — разные поля. Произвольные команды оболочки запрещены.
 
-Для Epic Games, Battle.net и Ubisoft Connect выберите EXE игры и импортируйте её ярлык кнопкой **Взять цель из ярлыка**. Для Fortnite добавьте `FortniteClient-Win64-Shipping.exe` и оставьте цель и аргументы запуска пустыми, чтобы автоматически использовать ссылку Epic. Сохраните выбор ЦП. Статус **Набор CPU Sets настроен** подтверждает выбранные ЦП. Если Windows отказала в высоком приоритете, это отображается отдельно. См. раздел **Настройка Fortnite** в [руководстве пользователя](USER-GUIDE.ru.md).
+Для Epic Games, Battle.net и Ubisoft Connect выберите EXE игры и импортируйте её ярлык кнопкой **Взять цель из ярлыка**. Для Fortnite порядок такой же, игровой EXE называется `FortniteClient-Win64-Shipping.exe`. Наведите указатель на **ⓘ** рядом с картой процессора, чтобы увидеть режим профиля. Статус **Правило применено** подтверждает успех, а в карточке игры видно, использовались ли CPU Sets. См. [пример для Fortnite](USER-GUIDE.ru.md#пример-fortnite).
 
 ## Пресеты ЦП
 

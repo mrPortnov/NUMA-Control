@@ -8,7 +8,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Forms = System.Windows.Forms;
 
 namespace NumaControl
@@ -81,6 +80,9 @@ namespace NumaControl
                             });
                             Press(window, "EditGame");
                         }
+                        window.Width = window.MinWidth; window.Height = window.MinHeight; Pump();
+                        CpuModeAndStatusChecks(window, language, theme);
+                        CheckCpuTileStates(window, language + "/" + theme + "/library details");
                         Press(window, "SettingsNav");
                         Check(Control<TextBlock>(window, "AboutVersion").Text == "NUMA Control " + typeof(Program).Assembly.GetName().Version.ToString(3), "About shows only the application version without core/thread/group counts / " + language + " / " + theme);
                         DropdownContrastChecks(window, language, theme);
@@ -100,7 +102,8 @@ namespace NumaControl
                             {
                                 Pump();
                                 ResourceSample sample = controller.Health.Current;
-                                return sample != null && sample.CpuIntervalSeconds > 0 && sample.ElapsedSeconds >= 65 && controller.Health.History.Any(earlier => earlier.ElapsedSeconds <= sample.ElapsedSeconds - 60);
+                                return sample != null && sample.CpuIntervalSeconds > 0 && sample.ElapsedSeconds >= 65 && sample.CpuOneCorePercent < 30 &&
+                                    controller.Health.History.Any(earlier => earlier.ElapsedSeconds <= sample.ElapsedSeconds - 60);
                             }, 90000), "README diagnostics waits for actual CPU samples and the 60-second memory trend / " + language);
                             Press(window, "RefreshDiagnostics");
                             foreach (string metric in new[] { "Memory", "Cpu", "Handles", "Heartbeat" })
@@ -132,6 +135,17 @@ namespace NumaControl
             {
                 ComboBox selector = Control<ComboBox>(window, name);
                 selector.BringIntoView(); selector.IsDropDownOpen = true; Pump();
+                var popup = (Popup)selector.Template.FindName("PART_Popup", selector);
+                var content = (FrameworkElement)popup.Child;
+                string popupContext = language + "/" + theme + "/" + name + " popup";
+                VisualCheck(popup.IsOpen && content.IsVisible && content.ActualWidth >= selector.ActualWidth - VisualTolerance, popupContext,
+                    "popup is shown at full selector width");
+                for (int index = 0; index < selector.Items.Count; index++)
+                {
+                    var item = (ComboBoxItem)selector.ItemContainerGenerator.ContainerFromIndex(index);
+                    CheckFullyVisible(item, content, popupContext);
+                    CheckVisualText(RenderedCaption(item), popupContext, "option " + index);
+                }
                 int selected = selector.SelectedIndex;
                 foreach (int index in new[] { selected, selected == selector.Items.Count - 1 ? selected - 1 : selected + 1 })
                 {
@@ -149,20 +163,63 @@ namespace NumaControl
                     string background = ((SolidColorBrush)surface.Background).Color.ToString();
                     Check(Contrast(foreground, background) >= 4.5, "rendered dropdown text has readable contrast on its highlight / " + context);
                     if (theme == "ami-bios") Check(((SolidColorBrush)text.Foreground).Color == Colors.White, "BIOS highlighted dropdown text is white / " + context);
-                    if (theme == "ami-bios" && index != selected)
-                    {
-                        var popup = (Popup)selector.Template.FindName("PART_Popup", selector);
-                        var content = (FrameworkElement)popup.Child; content.UpdateLayout();
-                        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth), (int)Math.Ceiling(content.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-                        bitmap.Render(content); var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
-                        string directory = Path.Combine(root, "visuals"); Directory.CreateDirectory(directory);
-                        using (var file = File.Create(Path.Combine(directory, "bios-dropdown-" + language + "-" + name + ".png"))) png.Save(file);
-                    }
+                    CheckVisualText(text, popupContext, index == selected ? "highlighted selected option" : "highlighted other option");
+                    if (index != selected) CaptureVisual(content, "popup-" + language + "-" + theme + "-" + name);
                 }
                 selector.IsDropDownOpen = false; Pump();
                 Check(selector.SelectedIndex == selected, "dropdown navigation preserves the saved selection without confirmation / " + language + " / " + theme + " / " + name);
                 Check(((SolidColorBrush)selector.Foreground).Color == (Color)ColorConverter.ConvertFromString(Themes.Map("#EEF0F8")), "closed dropdown restores normal text color / " + language + " / " + theme + " / " + name);
             }
+        }
+        private static void CpuModeAndStatusChecks(Window window, string language, string theme)
+        {
+            string context = language + "/" + theme + "/library details";
+            var icon = Control<Border>(window, "CpuModeInfo");
+            var tip = (ToolTip)icon.ToolTip;
+            var iconText = (TextBlock)icon.Child;
+            Check(icon.IsVisible && icon.Focusable && ToolTipService.GetShowsToolTipOnKeyboardFocus(icon) == true,
+                "CPU mode help is visible and keyboard accessible / " + context);
+            Check(Contrast(((SolidColorBrush)iconText.Foreground).Color.ToString(), ((SolidColorBrush)icon.Background).Color.ToString()) >= 4.5,
+                "CPU mode information glyph has readable contrast / " + context);
+            icon.BringIntoView(); Pump();
+            CheckFullyVisible(icon, Viewport(Control<ScrollViewer>(window, "LibraryView")), context);
+            tip.PlacementTarget = icon;
+            tip.IsOpen = true;
+            try
+            {
+                Pump();
+                var text = ((StackPanel)tip.Content).Children.OfType<TextBlock>().ToArray();
+                Check(text[0].Text == L10n.T("Режим профиля · жёсткая маска") && text[1].Text == L10n.T("Жёсткая маска ограничивает, на каких ЦП процесс может выполняться.") &&
+                    text[2].Text == L10n.T("CPU Sets задаёт набор ЦП по умолчанию для потоков без собственного назначения. В Диспетчере задач при этом могут отображаться все ЦП."),
+                    "CPU mode tooltip shows the profile mode and both localized explanations / " + context);
+                for (int index = 0; index < text.Length; index++)
+                {
+                    CheckFullyVisible(text[index], tip, context);
+                    CheckVisualText(text[index], context, "CPU mode tooltip line " + index);
+                }
+                CheckDisjoint(tip, context, text);
+                CaptureVisual(tip, "tooltip-" + language + "-" + theme + "-cpu-mode");
+            }
+            finally { tip.IsOpen = false; tip.ClearValue(ToolTip.PlacementTargetProperty); }
+
+            var list = Control<ListBox>(window, "GameList");
+            var row = (GameRow)list.SelectedItem;
+            string previous = row.Status;
+            try
+            {
+                foreach (GameStatus status in new[] {
+                    new GameStatus { State = L10n.T("Правило применено"), Running = 1, Applied = 1 },
+                    new GameStatus { State = L10n.T("Нужна проверка"), Running = 1, Error = true } })
+                {
+                    row.Update(status);
+                    list.UpdateLayout();
+                    var container = (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(list.SelectedIndex);
+                    var label = Descendants(container).OfType<TextBlock>().Single(value => value.Text == row.Status);
+                    CheckVisualText(label, context, status.Error ? "warning status" : "rule-applied status");
+                    CheckFullyVisible(label, container, context);
+                }
+            }
+            finally { row.Update(new GameStatus { State = previous }); }
         }
         private static void ListAndTrayContrastChecks(Window window, Forms.ContextMenuStrip menu, string language, string theme)
         {
@@ -177,6 +234,7 @@ namespace NumaControl
                 var entry = new ProcessEntry { ProcessName = "ExampleGame", PathName = @"C:\Games\ExampleGame.exe", Pid = 1234 };
                 processes.ItemsSource = new[] { entry }; processes.SelectedIndex = 0; Pump();
                 CheckListSelectionContrast(processes, entry.Display, "process picker / " + context);
+                CheckVisualButtons(picker, (FrameworkElement)picker.Content, context + "/process picker", "RefreshProcesses", "CancelProcess", "SelectProcess");
             }
             finally { picker.Close(); Pump(); }
             menu.PerformLayout(); menu.Size = menu.GetPreferredSize(System.Drawing.Size.Empty);
