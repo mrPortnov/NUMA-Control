@@ -8,6 +8,8 @@
 !/README.ru.md
 !/CHANGELOG.md
 !/CHANGELOG.ru.md
+!/LICENSE
+!/THIRD-PARTY-NOTICES.txt
 !/docs/
 !/scripts/
 !/NumaControl/
@@ -20,6 +22,7 @@
 /.github/pull_request_template*.md
 /NumaControl/installer/banner.bmp
 /NumaControl/installer/dialog.bmp
+/NumaControl/installer/license.rtf
 /NumaControl/Build-Package.ps1
 /NumaControl/tests/Verify-Package.ps1
 /NumaControl/tests/Collect-ReleaseReports.ps1

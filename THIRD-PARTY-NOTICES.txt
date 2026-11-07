@@ -1,0 +1,117 @@
+THIRD-PARTY NOTICES / СТОРОННИЕ КОМПОНЕНТЫ
+
+NUMA Control's own application source, documentation and original graphics are
+licensed under the MIT License in LICENSE.txt in the distribution (LICENSE in
+the source repository). The third-party components below retain their own terms.
+
+Собственные исходники, документация и оригинальная графика NUMA Control
+распространяются по MIT. Текст находится в LICENSE.txt в дистрибутиве
+(в файле LICENSE в репозитории). Условия сторонних компонентов приведены ниже.
+
+1. WiX Toolset 7.0.1 runtime and installer resources
+
+The setup executable includes unmodified WiX Burn and WixStdBA runtime
+components. The MSI uses WixUI custom actions and standard installer resources
+from the official WiX Toolset 7.0.1 packages.
+
+В setup.exe используются неизменённые компоненты WiX Burn и WixStdBA.
+В MSI используются действия WixUI и стандартные ресурсы установщика
+из официальных пакетов WiX Toolset 7.0.1.
+
+Exact source / Исходники использованной версии
+https://github.com/wixtoolset/wix/tree/642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29
+Complete source archive / Полный архив исходников
+https://github.com/wixtoolset/wix/archive/642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29.zip
+Original license / Оригинал лицензии
+https://github.com/wixtoolset/wix/blob/642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29/LICENSE.TXT
+
+The MS-RL below covers the WiX components included in these installers.
+A separate Open Source Maintenance Fee (OSMF) agreement governs developers'
+use of the official WiX build tools. The agreement and its acceptance
+instructions are available from the WiX project.
+
+Приведённая ниже MS-RL относится к компонентам WiX в этих установщиках.
+Отдельное соглашение Open Source Maintenance Fee (OSMF) регулирует
+использование разработчиками официальных средств сборки WiX.
+Соглашение и порядок его принятия опубликованы проектом WiX.
+
+Build-tool agreement / Соглашение для средств сборки
+https://docs.firegiant.com/wix/osmf/
+
+The following original copyright notice and license apply to those WiX components.
+На указанные компоненты WiX распространяются следующие оригинальные уведомление и лицензия.
+Copyright (c) .NET Foundation and contributors.
+This software is released under the Microsoft Reciprocal License (MS-RL) (the "License"); you may not use the software except in compliance with the License.
+
+The text of the Microsoft Reciprocal License (MS-RL) can be found online at:
+ http://opensource.org/licenses/ms-rl
+
+
+Microsoft Reciprocal License (MS-RL)
+
+This license governs use of the accompanying software. If you use the software, you accept this license. If you do not accept the license, do not use the software.
+
+1. Definitions
+ The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under U.S. copyright law.
+ A "contribution" is the original software, or any additions or changes to the software.
+ A "contributor" is any person that distributes its contribution under this license.
+ "Licensed patents" are a contributor's patent claims that read directly on its contribution.
+
+2. Grant of Rights
+ (A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
+ (B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
+
+3. Conditions and Limitations
+ (A) Reciprocal Grants- For any file you distribute that contains code from the software (in source code or binary format), you must provide recipients the source code to that file along with a copy of this license, which license will govern that file. You may license other files that are entirely your own work and do not contain code from the software under any terms you choose.
+ (B) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
+ (C) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, your patent license from such contributor to the software ends automatically.
+ (D) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution notices that are present in the software.
+ (E) If you distribute any portion of the software in source code form, you may do so only under this license by including a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object code form, you may only do so under a license that complies with this license.
+ (F) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular purpose and non-infringement.
+
+
+2. Microsoft .NET Framework 4.8 prerequisite
+
+NUMA Control uses the .NET Framework installed with Windows or downloaded
+separately from Microsoft. The Microsoft web installer is acquired from the
+official URL below when the prerequisite is missing. It is not included in
+the NUMA Control portable ZIP or application MSI.
+
+NUMA Control использует установленный .NET Framework. При отсутствии нужной
+версии setup.exe получает веб-установщик непосредственно от Microsoft.
+В portable ZIP и MSI приложения компонент Microsoft не включён.
+
+Official Microsoft web installer / Официальный веб-установщик
+https://go.microsoft.com/fwlink/?LinkId=2085155
+
+The following original Microsoft terms apply only to the Microsoft supplement.
+They are separate from the MIT terms for NUMA Control.
+Следующие оригинальные условия Microsoft применяются к компоненту Microsoft.
+Для собственного кода NUMA Control действует MIT.
+MICROSOFT SOFTWARE SUPPLEMENTAL LICENSE TERMS
+.NET FRAMEWORK AND ASSOCIATED LANGUAGE PACKS FOR MICROSOFT WINDOWS OPERATING SYSTEM 
+Microsoft Corporation (or based on where you live, one of its affiliates) licenses this supplement to you. If you are licensed to use Microsoft Windows operating system software (the “software”), you may use this supplement. You may not use it if you do not have a license for the software. You may use this supplement with each validly licensed copy of the software.
+The following license terms describe additional use terms for this supplement. These terms and the license terms for the software apply to your use of the supplement. If there is a conflict, these supplemental license terms apply.
+BY USING THIS SUPPLEMENT, YOU ACCEPT THESE TERMS. IF YOU DO NOT ACCEPT THEM, DO NOT USE THIS SUPPLEMENT.
+If you comply with these license terms, you have the rights below.
+1.	DISTRIBUTABLE CODE. The supplement is comprised of Distributable Code. “Distributable Code” is code that you are permitted to distribute in programs you develop if you comply with the terms below.
+a.	Right to Use and Distribute. 
+·	You may copy and distribute the object code form of the supplement.
+·	Third Party Distribution. You may permit distributors of your programs to copy and distribute the Distributable Code as part of those programs.
+b.	Distribution Requirements. For any Distributable Code you distribute, you must
+·	add significant primary functionality to it in your programs;
+·	for any Distributable Code having a filename extension of .lib, distribute only the results of running such Distributable Code through a linker with your program;
+·	distribute Distributable Code included in a setup program only as part of that setup program without modification; 
+·	require distributors and external end users to agree to terms that protect it at least as much as this agreement;
+·	display your valid copyright notice on your programs; and
+·	indemnify, defend, and hold harmless Microsoft from any claims, including attorneys’ fees, related to the distribution or use of your programs.
+c.	Distribution Restrictions. You may not
+·	alter any copyright, trademark or patent notice in the Distributable Code;
+·	use Microsoft’s trademarks in your programs’ names or in a way that suggests your programs come from or are endorsed by Microsoft;
+·	distribute Distributable Code to run on a platform other than the Windows platform;
+·	include Distributable Code in malicious, deceptive or unlawful programs; or
+·	modify or distribute the source code of any Distributable Code so that any part of it becomes subject to an Excluded License. An Excluded License is one that requires, as a condition of use, modification or distribution, that
+·	the code be disclosed or distributed in source code form; or
+·	others have the right to modify it.
+2.	SUPPORT SERVICES FOR SUPPLEMENT. Microsoft provides support services for this software as described at www.support.microsoft.com/common/international.aspx.
+3.	PROCESSING OF PERSONAL DATA. To the extent Microsoft is a processor or subprocessor of personal data in connection with the software, Microsoft makes the commitments in the European Union General Data Protection Regulation Terms of the Online Services Terms to all customers effective May 25, 2018, at http://go.microsoft.com/fwlink/?LinkId=867296.

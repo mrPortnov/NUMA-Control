@@ -42,6 +42,9 @@ try {
     [void](New-Item -ItemType Directory -Path $payload -Force)
     $names = @('NUMA-Control.exe','NUMA-Control.exe.config','Open-NUMA.cmd','README.md','README.ru.md','USER-GUIDE.md','USER-GUIDE.ru.md')
     foreach ($name in $names) { Copy-Item -LiteralPath (Join-Path $project $name) -Destination (Join-Path $payload $name) }
+    Copy-Item -LiteralPath (Join-Path $snapshot 'LICENSE') -Destination (Join-Path $payload 'LICENSE.txt')
+    Copy-Item -LiteralPath (Join-Path $snapshot 'THIRD-PARTY-NOTICES.txt') -Destination (Join-Path $payload 'THIRD-PARTY-NOTICES.txt')
+    $names += @('LICENSE.txt','THIRD-PARTY-NOTICES.txt')
     $sourceRecord = @('Product: NUMA Control',('Version: ' + $Version),('Source commit: ' + $commit),'Package: portable x64; no user data or raw diagnostic reports','Build: Windows x64, .NET Framework; unsigned')
     [IO.File]::WriteAllLines((Join-Path $payload 'SOURCE.txt'), $sourceRecord, [Text.Encoding]::ASCII)
     $payloadFiles = @(Get-ChildItem -LiteralPath $payload -File | Sort-Object Name)
@@ -49,11 +52,26 @@ try {
     [IO.File]::WriteAllLines((Join-Path $payload 'SHA256.txt'), $manifest, [Text.Encoding]::ASCII)
     [void](New-Item -ItemType Directory -Path $releaseRoot -Force)
     if ($WithInstaller) {
-        $wixSource = Join-Path $root 'NumaControl\.tools\wix-3.14.1'
-        if (-not (Test-Path -LiteralPath (Join-Path $wixSource 'candle.exe'))) { throw 'Official WiX 3.14.1 tools are required for -WithInstaller.' }
-        $wixTarget = Join-Path $project '.tools\wix-3.14.1'
+        $wixSource = Join-Path $root 'NumaControl\.tools\wix-7.0.1'
+        if (-not (Test-Path -LiteralPath (Join-Path $wixSource 'wix.exe'))) { throw 'Run NumaControl/Get-WixTools.ps1 -AcceptEula before release verification.' }
+        $wixTarget = Join-Path $project '.tools\wix-7.0.1'
         [void](New-Item -ItemType Directory -Path (Split-Path -Parent $wixTarget) -Force)
         Copy-Item -LiteralPath $wixSource -Destination $wixTarget -Recurse
+
+        # Build old packages from the exact published authoring. These fixtures
+        # stay in the isolated verification workspace and never enter a release.
+        $legacyCommit = 'a4d7b152feae4e566dd5b07ff5ff5ed98946d818'
+        $legacyPaths = @('NumaControl/Build-Installer.ps1','NumaControl/Build-Bootstrapper.ps1','NumaControl/installer/Product.wxs','NumaControl/installer/Bundle.wxs','NumaControl/installer/Build-Branding.ps1','NumaControl/assets/app-mark-512.png','NumaControl/src/app.ico','NumaControl/NUMA-Control.exe.config','NumaControl/README.md','NumaControl/README.ru.md','NumaControl/USER-GUIDE.md','NumaControl/USER-GUIDE.ru.md')
+        $legacyZip = Join-Path $workspace 'legacy-source.zip'
+        & git archive --format=zip ('--output=' + $legacyZip) $legacyCommit -- @legacyPaths
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot export the published WiX 3 migration baseline.' }
+        $legacyRoot = Join-Path $workspace 'legacy'
+        [IO.Compression.ZipFile]::ExtractToDirectory($legacyZip, $legacyRoot)
+        $legacyProject = Join-Path $legacyRoot 'NumaControl'
+        $legacyTools = Join-Path $root 'NumaControl\.tools\wix-3.14.1'
+        if (-not (Test-Path -LiteralPath (Join-Path $legacyTools 'candle.exe'))) { throw 'Pinned WiX 3.14.1 tools are required only to build migration fixtures.' }
+        [void](New-Item -ItemType Directory -Path (Join-Path $legacyProject '.tools') -Force)
+        Copy-Item -LiteralPath $legacyTools -Destination (Join-Path $legacyProject '.tools\wix-3.14.1') -Recurse
         & (Join-Path $project 'Build-Installer.ps1') -ProductVersion $Version -OutputPath (Join-Path $releaseRoot ('NUMA-Control-' + $Version + '-setup-x64.msi'))
         & (Join-Path $project 'Build-Bootstrapper.ps1') -ProductVersion $Version -MsiPath (Join-Path $releaseRoot ('NUMA-Control-' + $Version + '-setup-x64.msi')) -OutputPath (Join-Path $releaseRoot ('NUMA-Control-' + $Version + '-setup-x64.exe'))
     }
@@ -84,8 +102,8 @@ try {
         $baseName = 'NUMA-Control-' + $Version + '-setup-x64'
         $msi = Join-Path $releaseRoot ($baseName + '.msi')
         $setup = Join-Path $releaseRoot ($baseName + '.exe')
-        & (Join-Path $tests 'Test-Installer.ps1') -MsiPath $msi
-        & (Join-Path $tests 'Test-Bootstrapper.ps1') -SetupPath $setup -MsiPath $msi
+        & (Join-Path $tests 'Test-Installer.ps1') -MsiPath $msi -LegacyProjectPath $legacyProject
+        & (Join-Path $tests 'Test-Bootstrapper.ps1') -SetupPath $setup -MsiPath $msi -LegacyProjectPath $legacyProject
         & (Join-Path $tests 'Run-Tests.ps1') -SkipBuild
         $resultsPath = Join-Path $tests 'artifacts\latest-results.json'
         $result = Get-Content -LiteralPath $resultsPath -Raw | ConvertFrom-Json

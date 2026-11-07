@@ -1,8 +1,12 @@
 ﻿#requires -Version 5.1
-param([string]$MsiPath)
+param([string]$MsiPath, [string]$LegacyProjectPath)
 $ErrorActionPreference='Stop'
 $project=Split-Path -Parent $PSScriptRoot
-if(-not $MsiPath) { $MsiPath=Join-Path $project 'NUMA-Control-1.7.3-setup-x64.msi' }
+if (-not $LegacyProjectPath -or -not (Test-Path -LiteralPath (Join-Path $LegacyProjectPath 'Build-Installer.ps1') -PathType Leaf)) {
+    throw 'Supply -LegacyProjectPath with the isolated v1.7.3 source export prepared by New-ReleaseBundle.ps1.'
+}
+$LegacyProjectPath=(Resolve-Path -LiteralPath $LegacyProjectPath).Path
+if(-not $MsiPath) { $MsiPath=Join-Path $project 'NUMA-Control-1.7.4-setup-x64.msi' }
 $MsiPath=[IO.Path]::GetFullPath($MsiPath)
 $isolationId=[Guid]::NewGuid().ToString('N'); $run=Join-Path $PSScriptRoot ('artifacts\installer-'+$isolationId); [void](New-Item -ItemType Directory -Path $run)
 $installFolder=Join-Path $run 'Приложение с пробелами'; $menuFolder=Join-Path $run 'Start menu'
@@ -10,11 +14,16 @@ $desktopFolder=Join-Path $run 'Desktop'
 $oldMsi=Join-Path $run 'older.msi'; $failMsi=Join-Path $run 'rollback.msi'
 $production=Get-Content -LiteralPath ($MsiPath+'.json') -Raw|ConvertFrom-Json
 $payload=Join-Path $run 'production'
-& (Join-Path $project '.tools\wix-3.14.1\dark.exe') -nologo -sw1059 -x $payload $MsiPath -o (Join-Path $run 'production.wxs')
+& (Join-Path $project '.tools\wix-7.0.1\wix.exe') msi decompile $MsiPath -x $payload -o (Join-Path $run 'production.wxs') -acceptEula wix7
 if($LASTEXITCODE -ne 0) { throw 'Cannot extract the production MSI.' }
 $isolatedMsi=Join-Path $run 'current-isolated.msi'
 & (Join-Path $project 'Build-Installer.ps1') -ProductVersion $production.ProductVersion -OutputPath $isolatedMsi -IsolationId $isolationId
-& (Join-Path $project 'Build-Installer.ps1') -ProductVersion '1.4.99' -OutputPath $oldMsi -IsolationId $isolationId
+$fixtureSource=Join-Path $run 'previous.cs'
+$fixtureExe=Join-Path $run 'previous.exe'
+[IO.File]::WriteAllText($fixtureSource,'[assembly: System.Reflection.AssemblyFileVersion("1.7.3.0")] static class PreviousFixture { static void Main() {} }')
+& (Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe') /nologo /target:winexe /platform:x64 "/out:$fixtureExe" $fixtureSource
+if ($LASTEXITCODE -ne 0) { throw 'Cannot compile the isolated v1.7.3 executable fixture.' }
+& (Join-Path $LegacyProjectPath 'Build-Installer.ps1') -ProductVersion '1.7.3' -OutputPath $oldMsi -IsolationId $isolationId -FixtureExe $fixtureExe
 & (Join-Path $project 'Build-Installer.ps1') -ProductVersion '1.4.98' -OutputPath $failMsi -InjectRollback -IsolationId $isolationId
 $current=Get-Content -LiteralPath ($isolatedMsi+'.json') -Raw|ConvertFrom-Json
 if($current.ApplicationSHA256 -ne $production.ApplicationSHA256) { throw 'Production MSI must be rebuilt after the EXE changed.' }
@@ -37,7 +46,7 @@ function Run-Msi([string[]]$options,[string]$log,[int[]]$expected=@(0)) {
     } finally { $process.Dispose() }
 }
 try {
-    $files=[ordered]@{ApplicationExe='NUMA-Control.exe';ApplicationConfig='NUMA-Control.exe.config';Readme='README.md';ReadmeRu='README.ru.md';UserGuide='USER-GUIDE.md';UserGuideRu='USER-GUIDE.ru.md'}
+    $files=[ordered]@{ApplicationExe='NUMA-Control.exe';ApplicationConfig='NUMA-Control.exe.config';Readme='README.md';ReadmeRu='README.ru.md';UserGuide='USER-GUIDE.md';UserGuideRu='USER-GUIDE.ru.md';License='..\LICENSE';ThirdPartyNotices='..\THIRD-PARTY-NOTICES.txt'}
     $actual=@(Get-ChildItem -LiteralPath (Join-Path $payload 'File') -File -Recurse | Select-Object -ExpandProperty Name)
     Check ($actual.Count -gt 0 -and -not (Compare-Object @($files.Keys) $actual -CaseSensitive)) 'production MSI ships only the application and bilingual documents'
     foreach($file in $files.GetEnumerator()) {
@@ -65,13 +74,15 @@ try {
     [void](Run-Msi @('/x',$current.ProductCode) (Join-Path $run 'desktop-no-uninstall.log'))
     $owned.Add($older.ProductCode)
     [void](Run-Msi (@('/i',('"'+$oldMsi+'"'),'DESKTOPCHOICE=1')+$properties) (Join-Path $run 'install-old.log'))
-    Check ((Product-State $older.ProductCode) -eq 5 -and (Test-Path -LiteralPath (Join-Path $installFolder 'NUMA-Control.exe'))) 'older package installs normally into a Unicode path with spaces'
+    Check ((Product-State $older.ProductCode) -eq 5 -and (Get-FileHash -LiteralPath (Join-Path $installFolder 'NUMA-Control.exe')).Hash -eq (Get-FileHash -LiteralPath $fixtureExe).Hash) 'WiX 3 v1.7.3 package installs its distinct executable into a Unicode path with spaces'
     Check ((Get-ChildItem -LiteralPath $menuFolder -Filter '*.lnk').Count -eq 2) 'launch and uninstall shortcuts are created in isolated menu directory'
     Check (Test-Path -LiteralPath (Join-Path $desktopFolder 'NUMA Control.lnk')) 'accepting the desktop shortcut creates the launch link in isolated desktop directory'
     $owned.Add($current.ProductCode)
     [void](Run-Msi @('/i',('"'+$MsiPath+'"')) (Join-Path $run 'upgrade.log'))
-    Check ((Product-State $older.ProductCode) -ne 5 -and (Product-State $current.ProductCode) -eq 5) 'major upgrade replaces prior product registration'
+    Check ((Product-State $older.ProductCode) -ne 5 -and (Product-State $current.ProductCode) -eq 5) 'WiX 7 major upgrade replaces the WiX 3 v1.7.3 product registration'
     Check ((Get-FileHash -LiteralPath (Join-Path $installFolder 'NUMA-Control.exe')).Hash -eq $current.ApplicationSHA256) 'installed executable matches release SHA256'
+    Check ((Get-FileHash -LiteralPath (Join-Path $installFolder 'LICENSE.txt')).Hash -eq (Get-FileHash -LiteralPath (Join-Path $project '..\LICENSE')).Hash) 'installed MIT license matches the canonical source'
+    Check ((Get-FileHash -LiteralPath (Join-Path $installFolder 'THIRD-PARTY-NOTICES.txt')).Hash -eq (Get-FileHash -LiteralPath (Join-Path $project '..\THIRD-PARTY-NOTICES.txt')).Hash) 'installed third-party terms match the canonical source'
     $documents=@('README.md','README.ru.md','USER-GUIDE.md','USER-GUIDE.ru.md')
     foreach($document in $documents) {
         Check ((Test-Path -LiteralPath (Join-Path $installFolder $document)) -and (Get-FileHash -LiteralPath (Join-Path $installFolder $document)).Hash -eq (Get-FileHash -LiteralPath (Join-Path $project $document)).Hash) ('installed bilingual documentation matches source: '+$document)

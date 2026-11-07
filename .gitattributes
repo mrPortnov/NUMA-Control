@@ -8,6 +8,9 @@
 *.yml text eol=lf
 *.ps1 text eol=crlf
 *.cmd text eol=crlf
+LICENSE text eol=lf
+# Preserve the upstream legal text, including its original trailing spaces.
+THIRD-PARTY-NOTICES.txt text eol=lf whitespace=-blank-at-eol
 .githooks/* text eol=lf
 *.png binary
 *.bmp binary

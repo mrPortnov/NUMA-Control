@@ -1,4 +1,4 @@
-# NUMA Control 1.7.3 — user guide
+# NUMA Control 1.7.4 — user guide
 
 **[English](USER-GUIDE.md) · [Русский](USER-GUIDE.ru.md)**
 
@@ -12,13 +12,15 @@ NUMA Control uses documented Windows APIs to query processes, set CPU affinity o
 
 Requires **Windows 10/11 x64**, **.NET Framework 4.8** and **one processor group containing 1–64 logical processors**. The modern .NET SDK, Python, Node and source code are unnecessary for normal use. Unsupported multi-group systems cannot apply game masks.
 
-Use the downloads for your version on GitHub Releases. The filenames below are for this guide's version, **1.7.3**. [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases)
+Use the downloads for your version on GitHub Releases. The filenames below are for this guide's version, **1.7.4**. [GitHub Releases](https://github.com/mrPortnov/NUMA-Control/releases)
 
 | Distribution | Installation |
 |---|---|
-| `NUMA-Control-1.7.3-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
-| `NUMA-Control-1.7.3-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
-| `NUMA-Control-1.7.3-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
+| `NUMA-Control-1.7.4-setup-x64.exe` | Recommended. Detects .NET Framework 4.8 or later; if missing, downloads the official Microsoft web installer and installs the prerequisite before the application MSI. The runtime may require internet, administrator approval and a restart. Existing 4.8/4.8.1 is skipped. |
+| `NUMA-Control-1.7.4-setup-x64.msi` | Per-user application installation. Requires .NET already installed; does not download it. Default destination: `%LOCALAPPDATA%\Programs\NUMA Control`. Start-menu shortcuts are created; the application desktop shortcut is optional. |
+| `NUMA-Control-1.7.4-portable-x64.zip` | Extract the whole archive to a stable writable folder. Keep `NUMA-Control.exe.config` beside the EXE. Run `Open-NUMA.cmd` or `NUMA-Control.exe`, outside the ZIP. |
+
+Before installing with setup.exe, read the license terms and select the acceptance checkbox. The application is licensed under MIT; the installer components and Microsoft .NET retain their own terms. The same notices are included as `LICENSE.txt` and `THIRD-PARTY-NOTICES.txt` in the installed folder and portable archive.
 
 The app, setup EXE and MSI are currently unsigned. Compare downloaded files with `SHA256SUMS.txt` from the same release; the portable ZIP also contains a per-file `SHA256.txt`. Checksums check integrity, not publisher identity. Respect Windows and organizational protection policies.
 

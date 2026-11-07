@@ -19,6 +19,9 @@ jobs:
     name: ${{ (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') && 'Release package verification' || 'Repository safety and Windows tests' }}
     runs-on: windows-latest
     timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
     env:
       VERIFY_RELEASE: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     steps:
@@ -42,6 +45,9 @@ jobs:
           Expand-Archive -LiteralPath $archive -DestinationPath $scannerDirectory
           & (Join-Path $scannerDirectory 'gitleaks.exe') git --no-banner --redact --log-opts='--all' .
           if ($LASTEXITCODE -ne 0) { throw 'History secret scan failed.' }
+      - name: Test the CodeQL release gate
+        shell: powershell
+        run: ./scripts/Test-ReleaseCodeQL.ps1
       - name: Run application and interface tests
         if: env.VERIFY_RELEASE != 'true'
         shell: powershell
@@ -50,16 +56,16 @@ jobs:
         if: env.VERIFY_RELEASE != 'true'
         shell: powershell
         run: ./scripts/Test-VisualResults.ps1 -Path ./NumaControl/tests/artifacts/latest-results.json
+      - name: Require CodeQL for the exact release commit
+        if: env.VERIFY_RELEASE == 'true'
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/Wait-ReleaseCodeQL.ps1
       - name: Get pinned WiX tools
         if: env.VERIFY_RELEASE == 'true'
         shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $archive = Join-Path $env:RUNNER_TEMP 'wix314-binaries.zip'
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip' -OutFile $archive
-          $expected = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
-          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected) { throw 'WiX archive checksum mismatch.' }
-          Expand-Archive -LiteralPath $archive -DestinationPath ./NumaControl/.tools/wix-3.14.1
+        run: ./NumaControl/Get-WixTools.ps1 -AcceptEula
       - name: Build and verify release distributions
         id: release_bundle
         if: env.VERIFY_RELEASE == 'true'

@@ -1,17 +1,16 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
   <Bundle Name="NUMA Control" Version="$(var.ProductVersion)" Manufacturer="NUMA Control" UpgradeCode="$(var.BundleUpgradeCode)" IconSourceFile="$(var.ProjectRoot)\src\app.ico" DisableModify="yes">
-    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.HyperlinkLicense">
-      <bal:WixStandardBootstrapperApplication LicenseUrl="" SuppressOptionsUI="yes" ShowVersion="yes" />
-    </BootstrapperApplicationRef>
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication LicenseFile="$(var.ProjectRoot)\installer\license.rtf" SuppressOptionsUI="yes" ShowVersion="yes" Theme="rtfLicense" />
+    </BootstrapperApplication>
     <Chain>
       <PackageGroupRef Id="NetFx48Web" />
-      <MsiPackage Id="NumaControlMsi" SourceFile="$(var.MsiPath)" Compressed="yes" DisplayInternalUI="yes" Visible="$(var.MsiVisible)" Vital="yes">
+      <MsiPackage Id="NumaControlMsi" SourceFile="$(var.MsiPath)" Compressed="yes" bal:DisplayInternalUICondition="WixBundleAction = 6" Visible="$(var.MsiVisible)" Vital="yes">
         <?ifdef IsolationDirectory ?>
         <MsiProperty Name="INSTALLFOLDER" Value="$(var.IsolationDirectory)\app" />
         <MsiProperty Name="APPLICATIONMENUFOLDER" Value="$(var.IsolationDirectory)\menu" />
         <MsiProperty Name="APPLICATIONDESKTOPFOLDER" Value="$(var.IsolationDirectory)\desktop" />
-        <?endif ?>
+        <?endif?>
       </MsiPackage>
     </Chain>
   </Bundle>
